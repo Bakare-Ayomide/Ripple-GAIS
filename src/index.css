@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 5% 6%;
+    --foreground: 60 10% 95%;
+
+    --card: 240 5% 10%;
+    --card-foreground: 60 10% 95%;
+
+    --popover: 240 5% 10%;
+    --popover-foreground: 60 10% 95%;
+
+    --primary: 160 85% 45%;
+    --primary-foreground: 240 5% 6%;
+
+    --secondary: 240 5% 14%;
+    --secondary-foreground: 60 10% 85%;
+
+    --muted: 240 5% 16%;
+    --muted-foreground: 240 5% 50%;
+
+    --accent: 330 80% 60%;
+    --accent-foreground: 60 10% 95%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 60 10% 95%;
+
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 160 85% 45%;
+
+    --radius: 0.75rem;
+
+    --glow-primary: 160 85% 45%;
+    --glow-accent: 330 80% 60%;
+
+    --gradient-brand: linear-gradient(135deg, hsl(160 85% 45%), hsl(200 80% 50%));
+    --gradient-hot: linear-gradient(135deg, hsl(330 80% 60%), hsl(20 90% 55%));
+    --gradient-story: linear-gradient(135deg, hsl(160 85% 45%), hsl(330 80% 60%), hsl(45 90% 55%));
+    --shadow-glow: 0 0 30px hsl(160 85% 45% / 0.15);
+    --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 8px 32px hsl(0 0% 0% / 0.4);
+
+    --font-display: 'Sora', system-ui, sans-serif;
+    --font-body: 'Outfit', system-ui, sans-serif;
+
+    --sidebar-background: 240 5% 8%;
+    --sidebar-foreground: 60 10% 95%;
+    --sidebar-primary: 160 85% 45%;
+    --sidebar-primary-foreground: 240 5% 6%;
+    --sidebar-accent: 240 5% 14%;
+    --sidebar-accent-foreground: 60 10% 95%;
+    --sidebar-border: 240 5% 15%;
+    --sidebar-ring: 160 85% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+}
+
+@layer utilities {
+  .gradient-brand {
+    background: var(--gradient-brand);
+  }
+  .gradient-hot {
+    background: var(--gradient-hot);
+  }
+  .gradient-story {
+    background: var(--gradient-story);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-body {
+    font-family: var(--font-body);
+  }
+  .text-glow {
+    text-shadow: 0 0 20px hsl(160 85% 45% / 0.5);
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .glass {
+    backdrop-filter: blur(20px) saturate(180%);
+    background: hsl(240 5% 10% / 0.7);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
