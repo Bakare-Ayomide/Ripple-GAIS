@@ -766,6 +766,11 @@ async function startServer() {
               const valA = a[col];
               const valB = b[col];
               if (valA === undefined || valB === undefined) return 0;
+              if (col === 'created_at' || col.endsWith('_at') || col.endsWith('date')) {
+                const timeA = new Date(valA).getTime() || 0;
+                const timeB = new Date(valB).getTime() || 0;
+                return ascending ? (timeA - timeB) : (timeB - timeA);
+              }
               if (typeof valA === 'string') {
                 return ascending ? valA.localeCompare(valB) : valB.localeCompare(valA);
               }
@@ -854,6 +859,52 @@ async function startServer() {
               });
             } else if (table === 'posts') {
               handleMentions(item.caption, item.user_id, item.id, false, true);
+            } else if (table === 'messages') {
+              localDb.notifications.push({
+                id: crypto.randomUUID(),
+                recipient_id: item.receiver_id,
+                actor_id: item.sender_id,
+                type: 'message',
+                post_id: null,
+                content: item.content ? (item.content.substring(0, 50) + (item.content.length > 50 ? '...' : '')) : 'Sent you a message.',
+                is_read: false,
+                created_at: new Date().toISOString()
+              });
+            } else if (table === 'stories') {
+              handleMentions(item.caption, item.user_id, null, false, true);
+            } else if (table === 'saved_posts') {
+              const post = localDb.posts.find(p => p.id === item.post_id);
+              if (post && post.user_id !== item.user_id) {
+                localDb.notifications.push({
+                  id: crypto.randomUUID(),
+                  recipient_id: post.user_id,
+                  actor_id: item.user_id,
+                  type: 'save_post',
+                  post_id: item.post_id,
+                  content: 'saved your post.',
+                  is_read: false,
+                  created_at: new Date().toISOString()
+                });
+              }
+            } else if (table === 'story_views') {
+              const story = localDb.stories.find(s => s.id === item.story_id);
+              if (story && story.user_id !== item.user_id) {
+                const alreadyNotified = localDb.notifications.some(
+                  n => n.recipient_id === story.user_id && n.actor_id === item.user_id && n.type === 'story_view'
+                );
+                if (!alreadyNotified) {
+                  localDb.notifications.push({
+                    id: crypto.randomUUID(),
+                    recipient_id: story.user_id,
+                    actor_id: item.user_id,
+                    type: 'story_view',
+                    post_id: null,
+                    content: 'viewed your story.',
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                  });
+                }
+              }
             }
           }
 
@@ -984,7 +1035,7 @@ async function startServer() {
           }
           case 'order': {
             const dir = (action.options && action.options.ascending === false) ? 'DESC' : 'ASC';
-            orderBy = `ORDER BY \`${action.column}\` ${dir}`;
+            orderBy = `ORDER BY \`${table}\`.\`${action.column}\` ${dir}`;
             break;
           }
           case 'limit':
@@ -1185,6 +1236,60 @@ async function startServer() {
           }
           if (table === 'posts') {
             await handleMentions(item.caption, item.user_id, item.id, false, false);
+          }
+          if (table === 'messages') {
+            try {
+              const contentStub = item.content ? (item.content.substring(0, 50) + (item.content.length > 50 ? '...' : '')) : 'Sent you a message.';
+              await pool.query(
+                `INSERT INTO notifications (id, recipient_id, actor_id, type, post_id, content, is_read) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  crypto.randomUUID(),
+                  item.receiver_id,
+                  item.sender_id,
+                  'message',
+                  null,
+                  contentStub,
+                  false
+                ]
+              );
+            } catch (e) {
+              console.error('[MySQL Message Notification Error]', e);
+            }
+          }
+          if (table === 'stories') {
+            await handleMentions(item.caption, item.user_id, null, false, false);
+          }
+          if (table === 'saved_posts') {
+            try {
+              const [postRows]: any = await pool.query('SELECT user_id FROM posts WHERE id = ?', [item.post_id]);
+              if (postRows.length > 0 && postRows[0].user_id !== item.user_id) {
+                await pool.query(
+                  `INSERT INTO notifications (id, recipient_id, actor_id, type, post_id, content, is_read) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                  [crypto.randomUUID(), postRows[0].user_id, item.user_id, 'save_post', item.post_id, 'saved your post.', false]
+                );
+              }
+            } catch (e) {
+              console.error('[MySQL Save Post Notification Error]', e);
+            }
+          }
+          if (table === 'story_views') {
+            try {
+              const [storyRows]: any = await pool.query('SELECT user_id FROM stories WHERE id = ?', [item.story_id]);
+              if (storyRows.length > 0 && storyRows[0].user_id !== item.user_id) {
+                const [existNotif]: any = await pool.query(
+                  `SELECT id FROM notifications WHERE recipient_id = ? AND actor_id = ? AND type = 'story_view' LIMIT 1`,
+                  [storyRows[0].user_id, item.user_id]
+                );
+                if (existNotif.length === 0) {
+                  await pool.query(
+                    `INSERT INTO notifications (id, recipient_id, actor_id, type, post_id, content, is_read) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [crypto.randomUUID(), storyRows[0].user_id, item.user_id, 'story_view', null, 'viewed your story.', false]
+                  );
+                }
+              }
+            } catch (e) {
+              console.error('[MySQL Story View Notification Error]', e);
+            }
           }
         }
 

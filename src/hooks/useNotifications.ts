@@ -37,6 +37,7 @@ export const useNotifications = () => {
       return data || [];
     },
     enabled: !!user,
+    refetchInterval: 3000,
   });
 };
 
@@ -54,6 +55,7 @@ export const useUnreadNotificationsCount = () => {
       return count || 0;
     },
     enabled: !!user,
+    refetchInterval: 3000,
   });
 };
 
@@ -86,6 +88,7 @@ export const useUnreadMessagesCount = () => {
       return count || 0;
     },
     enabled: !!user,
+    refetchInterval: 3000,
   });
 };
 

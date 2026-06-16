@@ -50,6 +50,7 @@ export const useConversations = () => {
       }));
     },
     enabled: !!user,
+    refetchInterval: 3000,
   });
 };
 
@@ -95,6 +96,7 @@ export const useChatMessages = (partnerId: string) => {
       return (data || []) as MessageWithProfile[];
     },
     enabled: !!user && !!partnerId,
+    refetchInterval: 2500,
   });
 };
 

@@ -26,7 +26,7 @@ import VerifiedBadge from "@/components/ripple/VerifiedBadge";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Admin = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { data: isAdmin, isLoading: checkingAdmin } = useIsAdmin();
   const { data: users, refetch: refetchUsers } = useAllUsers();
   const { data: posts, refetch: refetchPosts } = useAllPosts();
@@ -143,18 +143,19 @@ const Admin = () => {
     );
   }, [users, search]);
 
-  if (checkingAdmin) {
+  if (authLoading || checkingAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!user || !isAdmin) return <Navigate to="/" replace />;
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 pt-4 lg:pt-6 pb-20 lg:pb-8 font-sans">
+    <div className="min-h-screen bg-background text-foreground w-full py-8 md:py-12">
+      <div className="max-w-[1200px] mx-auto px-4 font-sans">
       
       {/* Return to App Button */}
       <Link
@@ -177,48 +178,48 @@ const Admin = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Admin Inner Navigation Sidebar */}
-        <div className="lg:col-span-3 space-y-2">
-          <p className="text-xs font-mono font-bold tracking-wider text-muted-foreground uppercase px-3 mb-2">
+        <div className="lg:col-span-3 flex flex-row overflow-x-auto lg:flex-col gap-2 pb-4 lg:pb-0 lg:space-y-2 scrollbar-none">
+          <p className="hidden lg:block text-xs font-mono font-bold tracking-wider text-muted-foreground uppercase px-3 mb-2">
             Section Navigation
           </p>
           <button
             onClick={() => setTab("overview")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left ${
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left lg:w-full ${
               tab === "overview"
                 ? "bg-primary text-primary-foreground shadow-glow"
                 : "bg-card border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
             <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
-            <span className="flex-1">Overview & Systems</span>
+            <span className="whitespace-nowrap">Overview & Systems</span>
           </button>
           
           <button
             onClick={() => setTab("users")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left ${
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left lg:w-full ${
               tab === "users"
                 ? "bg-primary text-primary-foreground shadow-glow"
                 : "bg-card border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
             <Users className="w-5 h-5 flex-shrink-0" />
-            <span className="flex-1">Users & Roles</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/30 text-foreground font-mono">
+            <span className="whitespace-nowrap">Users & Roles</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/35 text-foreground font-mono">
               {users?.length || 0}
             </span>
           </button>
 
           <button
             onClick={() => setTab("posts")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left ${
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left lg:w-full ${
               tab === "posts"
                 ? "bg-primary text-primary-foreground shadow-glow"
                 : "bg-card border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
             <FileText className="w-5 h-5 flex-shrink-0" />
-            <span className="flex-1">Content Moderation</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/30 text-foreground font-mono">
+            <span className="whitespace-nowrap">Content Moderation</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/35 text-foreground font-mono">
               {posts?.length || 0}
             </span>
           </button>
@@ -458,6 +459,7 @@ const Admin = () => {
         </div>
       </div>
     </div>
+  </div>
   );
 };
 

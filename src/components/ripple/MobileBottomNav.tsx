@@ -51,11 +51,11 @@ const MobileBottomNav = () => {
                   strokeWidth={isActive ? 2.5 : 1.5}
                   fill={isActive ? "currentColor" : "none"}
                 />
-                {badge && (
+                {badge !== undefined && badge > 0 ? (
                   <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center">
                     {badge}
                   </span>
-                )}
+                ) : null}
               </Link>
             );
           })}

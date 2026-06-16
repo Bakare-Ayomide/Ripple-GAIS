@@ -28,6 +28,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin" element={<Admin />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<Feed />} />
               <Route path="/explore" element={<Explore />} />
@@ -36,7 +37,6 @@ const App = () => (
               <Route path="/create" element={<Feed />} />
               <Route path="/activity" element={<Notifications />} />
               <Route path="/messages" element={<Messages />} />
-              <Route path="/admin" element={<Admin />} />
               <Route path="/hashtag/:tag" element={<HashtagPage />} />
               <Route path="/user/:username" element={<UserProfile />} />
               <Route path="/verified" element={<VerifiedUsers />} />

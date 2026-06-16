@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, MessageCircle, UserPlus, Send, Bell, CheckCheck, AtSign } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, Send, Bell, CheckCheck, AtSign, Eye, Bookmark } from "lucide-react";
 import { useNotifications, useMarkNotificationsRead } from "@/hooks/useNotifications";
 import VerifiedBadge from "@/components/ripple/VerifiedBadge";
 
@@ -11,6 +11,8 @@ const ICONS: Record<string, any> = {
   follow: { Icon: UserPlus, color: "text-emerald-500", text: "started following you" },
   message: { Icon: Send, color: "text-accent", text: "sent you a message" },
   mention: { Icon: AtSign, color: "text-primary", text: "mentioned you" },
+  story_view: { Icon: Eye, color: "text-amber-500", text: "viewed your story" },
+  save_post: { Icon: Bookmark, color: "text-violet-500", text: "saved your post" },
 };
 
 const Notifications = () => {
