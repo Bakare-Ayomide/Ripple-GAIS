@@ -1,4 +1,4 @@
-import { Home, Compass, Search, Send, Zap, Plus, User, Settings, Waves, Shield } from "lucide-react";
+import { Home, Compass, Search, Send, Zap, Plus, User, Settings, Shield } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
@@ -26,13 +26,8 @@ const DesktopSidebar = () => {
   return (
     <>
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[220px] xl:w-[280px] flex-col bg-card border-r border-border z-50 py-6 px-3">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 px-3 mb-10">
-          <div className="w-10 h-10 rounded-2xl gradient-brand flex items-center justify-center shadow-glow">
-            <Waves className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Ripple</h1>
-        </Link>
+        {/* Sleek top spacer replacing former logo */}
+        <div className="h-4" />
 
         {/* Nav */}
         <nav className="flex-1 flex flex-col gap-1">

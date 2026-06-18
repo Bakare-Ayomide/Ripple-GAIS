@@ -53,6 +53,38 @@ export const usePosts = () => {
   });
 };
 
+export const usePost = (postId: string | null) => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["post", postId],
+    queryFn: async () => {
+      if (!postId) return null;
+      const { data: post, error } = await supabase
+        .from("posts")
+        .select("*, profiles!posts_user_id_profiles_fkey(username, display_name, avatar_url, is_verified)")
+        .eq("id", postId)
+        .maybeSingle() as any;
+      if (error) throw error;
+      if (!post) return null;
+
+      if (!user) return post as PostWithProfile;
+
+      const [{ data: likes }, { data: saved }] = await Promise.all([
+        supabase.from("likes").select("post_id").eq("user_id", user.id).eq("post_id", postId),
+        supabase.from("saved_posts").select("post_id").eq("user_id", user.id).eq("post_id", postId),
+      ]);
+
+      return {
+        ...post,
+        is_liked: !!likes?.length,
+        is_saved: !!saved?.length,
+      } as PostWithProfile;
+    },
+    enabled: !!postId,
+  });
+};
+
 export const useCreatePost = () => {
   const qc = useQueryClient();
   const { user } = useAuth();
