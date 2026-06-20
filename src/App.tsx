@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
+import Onboarding from "./pages/Onboarding";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import HashtagPage from "./pages/HashtagPage";
@@ -27,12 +28,14 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={<Admin />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<Feed />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Profile />} />
               <Route path="/search" element={<Explore />} />
               <Route path="/create" element={<Feed />} />
               <Route path="/activity" element={<Notifications />} />

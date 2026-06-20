@@ -87,7 +87,7 @@ const StoryComposer = ({ open, onClose }: Props) => {
         caption: caption.trim() || undefined,
         onProgress: setPct,
       });
-      toast.success("Story added!");
+      toast.success("Wave added!");
       onClose();
     } catch (e: any) {
       toast.error(e.message || "Failed");
@@ -100,17 +100,17 @@ const StoryComposer = ({ open, onClose }: Props) => {
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center"
+        className="fixed inset-0 bg-background/50 backdrop-blur-[24px] flex items-end sm:items-center justify-center"
         style={{ zIndex: 99999 }}
         onClick={onClose}
       >
         <motion.div
           initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-card w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-border shadow-elevated overflow-hidden"
+          className="bg-card/75 w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-elevated overflow-hidden backdrop-blur-xl"
         >
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <h2 className="font-display font-extrabold text-lg text-foreground">New Story</h2>
+            <h2 className="font-display font-extrabold text-lg text-foreground">New Wave</h2>
             <button onClick={onClose} className="p-2 rounded-xl hover:bg-secondary"><X className="w-5 h-5" /></button>
           </div>
 
@@ -121,7 +121,7 @@ const StoryComposer = ({ open, onClose }: Props) => {
                 <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center">
                   <ImageIcon className="w-7 h-7 text-primary-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground font-medium">Pick a photo for your story</p>
+                <p className="text-sm text-muted-foreground font-medium">Pick a photo for your Wave</p>
               </button>
             ) : (
               <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-black">
@@ -175,14 +175,14 @@ const StoryComposer = ({ open, onClose }: Props) => {
               </button>
             </div>
 
-            {createStory.isPending && <UploadProgress value={pct} label="Posting story" />}
+            {createStory.isPending && <UploadProgress value={pct} label="Streaming your Wave" />}
 
             <button
               onClick={submit}
               disabled={!file || createStory.isPending}
               className="w-full py-3.5 rounded-2xl gradient-brand text-primary-foreground font-display font-extrabold shadow-glow disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {createStory.isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> {Math.round(pct)}%</> : "Share Story"}
+              {createStory.isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> {Math.round(pct)}%</> : "Share Wave"}
             </button>
           </div>
         </motion.div>

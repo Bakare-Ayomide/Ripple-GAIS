@@ -19,7 +19,7 @@ const Explore = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search waves, people, tags..."
+            placeholder="Dive into currents, crew, Lagoons..."
             className="w-full h-12 pl-12 pr-4 rounded-2xl bg-card border border-border text-foreground placeholder:text-muted-foreground font-medium outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
           />
         </div>
@@ -27,7 +27,7 @@ const Explore = () => {
 
       {/* Tags */}
       <div className="flex gap-2 mb-5 overflow-x-auto hide-scrollbar">
-        {["🔥 Trending", "📸 Photos", "🎥 Video", "🎵 Music", "🎨 Art", "✈️ Travel"].map(tag => (
+        {["🌊 Making Waves", "📸 Photos", "🎥 Video", "🎵 Music", "🎨 Art", "✈️ Travel"].map(tag => (
           <button key={tag} className="px-4 py-2 rounded-2xl bg-card border border-border text-sm font-display font-semibold text-foreground whitespace-nowrap hover:bg-secondary transition-colors">
             {tag}
           </button>
@@ -55,7 +55,7 @@ const Explore = () => {
         })}
         {!allPosts.length && (
           <div className="col-span-3 text-center py-12">
-            <p className="text-muted-foreground text-sm">No posts to explore yet</p>
+            <p className="text-muted-foreground text-sm">The ocean is calm, no Drops to explore yet</p>
           </div>
         )}
       </div>

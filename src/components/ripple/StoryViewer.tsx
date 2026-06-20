@@ -186,7 +186,7 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
             <div className="flex items-center gap-2">
               <button className="flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-accent text-accent-foreground text-[11px] font-display font-extrabold shadow-md">
                 <UserPlus className="w-3 h-3" />
-                Follow
+                Flow
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
@@ -236,7 +236,7 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
                 onChange={(e) => setReplyText(e.target.value)}
                 onFocus={() => setPaused(true)}
                 onBlur={() => setPaused(false)}
-                placeholder="Reply Story.."
+                placeholder="Reply Wave..."
                 className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 text-white text-sm rounded-full px-4 py-3 placeholder:text-white/40 outline-none focus:border-white/40"
               />
               <button className="w-11 h-11 rounded-full bg-accent flex items-center justify-center shadow-md">

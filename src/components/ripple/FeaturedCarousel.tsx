@@ -22,8 +22,8 @@ const FeaturedCarousel = ({ posts, onPostClick }: Props) => {
     <div className="mb-4">
       <div className="flex items-center justify-between px-1 mb-3">
         <div>
-          <h3 className="font-display font-extrabold text-foreground text-base">🔥 Hot Ripples</h3>
-          <p className="text-xs text-muted-foreground font-medium">Most engaging posts</p>
+          <h3 className="font-display font-extrabold text-foreground text-base">🌊 Tsunamis</h3>
+          <p className="text-xs text-muted-foreground font-medium">Most active Drops making Waves</p>
         </div>
         <div className="flex gap-1.5">
           <button onClick={() => scroll("left")} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">
@@ -41,7 +41,7 @@ const FeaturedCarousel = ({ posts, onPostClick }: Props) => {
             key={post.id}
             whileTap={{ scale: 0.96 }}
             onClick={() => onPostClick(post)}
-            className="flex-shrink-0 w-[200px] snap-start rounded-2xl overflow-hidden border border-border bg-card shadow-card text-left transition-all hover:border-primary/30"
+            className="flex-shrink-0 w-[200px] snap-start rounded-2xl overflow-hidden border border-white/10 backdrop-blur-xl bg-card/65 shadow-card text-left transition-all hover:border-primary/30"
           >
             {post.image_url ? (
               <img src={post.image_url} alt="" className="w-full h-[240px] object-cover" />

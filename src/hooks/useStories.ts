@@ -11,20 +11,50 @@ export const useStories = () => {
         .select("*, profiles!stories_user_id_profiles_fkey(username, display_name, avatar_url, is_verified)")
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false }) as any);
-      if (error) throw error;
+      
+      if (error) {
+        console.warn("Stories fetch error (degrading gracefully):", error);
+        return [];
+      }
+
+      console.log("Stories data fetched:", data);
 
       const grouped = new Map<string, any>();
       for (const story of data || []) {
+        // Fallback for profile object access
+        let profileObj = story.profiles || story["profiles!stories_user_id_profiles_fkey"];
+        if (!profileObj) {
+          // Look for any object property that has username attribute
+          for (const key of Object.keys(story)) {
+            if (story[key] && typeof story[key] === "object" && "username" in story[key]) {
+              profileObj = story[key];
+              break;
+            }
+          }
+        }
+        
+        // Defensively construct fallback details if profile is completely missing
+        if (!profileObj) {
+          profileObj = {
+            username: "user_" + (story.user_id ? story.user_id.substring(0, 5) : "unknown"),
+            display_name: "Creative Ripple User",
+            avatar_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${story.user_id || "default"}`,
+            is_verified: false
+          };
+        }
+
         if (!grouped.has(story.user_id)) {
           grouped.set(story.user_id, {
             user_id: story.user_id,
-            profile: story.profiles,
+            profile: profileObj,
             stories: [],
           });
         }
         grouped.get(story.user_id).stories.push(story);
       }
-      return Array.from(grouped.values());
+      const result = Array.from(grouped.values());
+      console.log("Grouped stories:", result);
+      return result;
     },
   });
 };

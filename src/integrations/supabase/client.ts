@@ -25,15 +25,44 @@ class SupabaseAuth {
     }
     try {
       const user = JSON.parse(sessionUserStr) as MockupUser;
-      return {
-        data: {
-          session: {
-            access_token: token,
-            user
-          }
-        },
-        error: null
-      };
+      
+      // Validate session with backend to totally reflect deletion/updates from MySQL (phpmyadmin)
+      try {
+        const res = await fetch('/api/auth/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        if (!res.ok) {
+          // If the user was deleted in phpMyAdmin, log them out instantly!
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          authListeners.forEach(cb => cb('SIGNED_OUT', null));
+          return { data: { session: null }, error: null };
+        }
+        const validated = await res.json() as { user: MockupUser };
+        localStorage.setItem('auth_user', JSON.stringify(validated.user));
+        return {
+          data: {
+            session: {
+              access_token: token,
+              user: validated.user
+            }
+          },
+          error: null
+        };
+      } catch (err) {
+        // Fallback silently if offline or database error
+        return {
+          data: {
+            session: {
+              access_token: token,
+              user
+            }
+          },
+          error: null
+        };
+      }
     } catch {
       return { data: { session: null }, error: null };
     }
@@ -111,16 +140,31 @@ class SupabaseAuth {
     return { error: null };
   }
 
-  async updateUser({ password }: { password?: string }) {
+  async updateUser({ password, data }: { password?: string; data?: any }) {
     const token = localStorage.getItem('auth_token');
     if (!token) return { error: new Error("Not authenticated.") };
+    
+    // Update local user_metadata in localStorage to sync state instantly
+    const userStr = localStorage.getItem('auth_user');
+    if (userStr && data) {
+      try {
+        const u = JSON.parse(userStr);
+        u.user_metadata = { ...(u.user_metadata || {}), ...data };
+        localStorage.setItem('auth_user', JSON.stringify(u));
+        // Trigger auth listeners to propagate state updates across component tree
+        authListeners.forEach(cb => cb('USER_UPDATED', { access_token: token, user: u } as any));
+      } catch (err) {
+        console.warn("Could not update local session user metadata in localStorage", err);
+      }
+    }
+
     const res = await fetch('/api/auth/update-user', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ password })
+      body: JSON.stringify({ password, data })
     });
     if (!res.ok) {
       const text = await res.text();
@@ -257,6 +301,26 @@ class SupabaseQueryBuilder {
 
   maybeSingle() {
     this.actions.push({ type: 'maybeSingle' });
+    return this;
+  }
+
+  gt(column: string, value: unknown) {
+    this.actions.push({ type: 'gt', column, value });
+    return this;
+  }
+
+  gte(column: string, value: unknown) {
+    this.actions.push({ type: 'gte', column, value });
+    return this;
+  }
+
+  lt(column: string, value: unknown) {
+    this.actions.push({ type: 'lt', column, value });
+    return this;
+  }
+
+  lte(column: string, value: unknown) {
+    this.actions.push({ type: 'lte', column, value });
     return this;
   }
 

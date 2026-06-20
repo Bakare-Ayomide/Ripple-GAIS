@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,600;1,700&family=Sora:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -36,6 +36,9 @@
 
     --radius: 0.75rem;
 
+    --scroll-nav-scale: 1;
+    --scroll-nav-translucency: 1;
+
     --glow-primary: 160 85% 45%;
     --glow-accent: 330 80% 60%;
 
@@ -68,7 +71,7 @@
     font-family: var(--font-body);
     background-image: 
       linear-gradient(to bottom, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.35)),
-      url('./assets/images/leaf_background_1781771771256.jpg');
+      url('https://ripple.zerolord.com/brands/bg1.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -146,9 +149,23 @@
     position: relative;
     overflow: hidden;
     backdrop-filter: blur(20px) saturate(220%);
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-position 1s ease-out;
     transform-style: preserve-3d;
     will-change: transform, box-shadow;
+    transform: scale(var(--scroll-nav-scale, 1)) translate3d(0, 0, 0);
+    opacity: var(--scroll-nav-translucency, 1);
+  }
+
+  @keyframes water-displacement-ripple {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 30%;
+    }
+    100% {
+      background-position: 50% 100%;
+    }
   }
   
   /* Convex 3D dome gel refraction glare */
@@ -171,6 +188,15 @@
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     transform: translate3d(0, 0, 1px);
     opacity: 0.95;
+  }
+
+  /* Spherical glass lens refraction glare for perfect circle icons */
+  .btn-liquid-glass-base.rounded-full::before {
+    top: 2px;
+    left: 10%;
+    right: 10%;
+    height: 35%;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40% !important;
   }
   
   /* Specular border contour highlight creating high-gloss crisp bevel */
@@ -195,31 +221,36 @@
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Tactile live-response interaction state curves */
+  /* Tactile live-response interaction state curves with water displacement ripple */
   .btn-liquid-glass-base:hover {
     backdrop-filter: blur(24px) saturate(240%);
-    transform: translateY(-2px) scale(1.015);
+    transform: scale(calc(var(--scroll-nav-scale, 1) * 1.05)) translateY(-2.5px) !important;
+    background-size: 200% 200% !important;
+    animation: water-displacement-ripple 4s infinite ease-in-out alternate;
+    box-shadow: 
+      0 12px 30px -4px rgba(255, 255, 255, 0.15),
+      0 0 16px 2px rgba(255, 255, 255, 0.08);
   }
 
   .btn-liquid-glass-base:hover::before {
-    height: 44%;
+    height: 48%;
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.48) 0%,
-      rgba(255, 255, 255, 0.15) 70%,
+      rgba(255, 255, 255, 0.52) 0%,
+      rgba(255, 255, 255, 0.18) 70%,
       rgba(255, 255, 255, 0) 100%
     );
-    transform: translate3d(0, 1px, 1px);
+    transform: translate3d(0, 1.5px, 1.5px);
     opacity: 1;
   }
 
   .btn-liquid-glass-base:hover::after {
     background: linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.55) 0%,
-      rgba(255, 255, 255, 0.2) 35%,
-      rgba(255, 255, 255, 0.08) 65%,
-      rgba(255, 255, 255, 0.35) 100%
+      rgba(255, 255, 255, 0.62) 0%,
+      rgba(255, 255, 255, 0.24) 35%,
+      rgba(255, 255, 255, 0.10) 65%,
+      rgba(255, 255, 255, 0.42) 100%
     );
   }
 

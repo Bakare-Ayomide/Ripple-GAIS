@@ -64,13 +64,13 @@ const Feed = () => {
                 renderFeedItems()
               ) : (
                 <div className="text-center py-16 px-4">
-                  <p className="font-display font-extrabold text-2xl text-foreground mb-2">No ripples yet</p>
+                  <p className="font-display font-extrabold text-2xl text-foreground mb-2">The Stream is Calm</p>
                   <p className="text-sm text-muted-foreground mb-6">Be the first to make a splash!</p>
                   <button
                     onClick={() => setShowCreate(true)}
                     className="px-8 py-3.5 rounded-2xl gradient-brand text-primary-foreground font-display font-extrabold shadow-glow text-base"
                   >
-                    Create Post
+                    Create a Drop
                   </button>
                 </div>
               )}

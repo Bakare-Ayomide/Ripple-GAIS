@@ -9,13 +9,13 @@ import PostViewerModal from "@/components/ripple/PostViewerModal";
 import { toast } from "sonner";
 
 const ICONS: Record<string, any> = {
-  like: { Icon: Heart, color: "text-rose-500", text: "liked your post" },
-  comment: { Icon: MessageCircle, color: "text-primary", text: "commented" },
-  follow: { Icon: UserPlus, color: "text-emerald-500", text: "started following you" },
-  message: { Icon: Send, color: "text-accent", text: "sent you a message" },
-  mention: { Icon: AtSign, color: "text-primary", text: "mentioned you" },
-  story_view: { Icon: Eye, color: "text-amber-500", text: "viewed your story" },
-  save_post: { Icon: Bookmark, color: "text-violet-500", text: "saved your post" },
+  like: { Icon: Heart, color: "text-rose-500", text: "splashed your Drop" },
+  comment: { Icon: MessageCircle, color: "text-primary", text: "echoed on your Drop" },
+  follow: { Icon: UserPlus, color: "text-emerald-500", text: "joined your crew" },
+  message: { Icon: Send, color: "text-accent", text: "bubbled you in a channel" },
+  mention: { Icon: AtSign, color: "text-primary", text: "rippled you in a Drop" },
+  story_view: { Icon: Eye, color: "text-amber-500", text: "surfed your Wave" },
+  save_post: { Icon: Bookmark, color: "text-violet-500", text: "anchored your Drop" },
 };
 
 const Notifications = () => {
@@ -46,8 +46,8 @@ const Notifications = () => {
             <Bell className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-display font-extrabold text-2xl text-foreground">Notifications</h1>
-            <p className="text-sm text-muted-foreground">Likes, comments, follows & messages</p>
+            <h1 className="font-display font-extrabold text-2xl text-foreground">Ripples</h1>
+            <p className="text-sm text-muted-foreground">Splashes, echoes, tides & channels</p>
           </div>
         </div>
         <Link

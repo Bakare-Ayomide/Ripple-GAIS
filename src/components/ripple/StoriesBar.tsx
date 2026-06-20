@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useStories } from "@/hooks/useStories";
 import { useProfile } from "@/hooks/useProfile";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useUnreadNotificationsCount } from "@/hooks/useNotifications";
 import StoryViewer from "./StoryViewer";
 import StoryComposer from "./StoryComposer";
@@ -35,22 +35,29 @@ const StoriesBar = () => {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerStartIdx, setViewerStartIdx] = useState(0);
   const [composerOpen, setComposerOpen] = useState(false);
+  const location = useLocation();
 
   const openViewer = (idx: number) => {
     setViewerStartIdx(idx);
     setViewerOpen(true);
   };
 
+  const isActivityActive = location.pathname === "/activity";
+
   return (
     <div className="flex-shrink-0 w-[72px] lg:w-[68px] h-[calc(100vh-3.5rem)] lg:h-screen sticky top-14 lg:top-0 z-10">
       <div className="flex flex-col items-center gap-3 py-3 px-1 h-full overflow-y-auto hide-scrollbar">
-        {/* Notification bell */}
+        {/* Notification bell styled with Liquid Glass */}
         <Link to="/activity" className="relative mb-1 block">
-          <div className="w-12 h-12 rounded-full bg-secondary/85 hover:bg-secondary flex items-center justify-center transition-all">
-            <Bell className="w-6 h-6 text-foreground" strokeWidth={1.5} />
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+            isActivityActive
+              ? "btn-liquid-glass-base btn-liquid-glass-primary text-foreground shadow-glow"
+              : "btn-liquid-glass-base btn-liquid-glass-secondary text-foreground"
+          }`}>
+            <Bell className="w-5.5 h-5.5 text-foreground" strokeWidth={1.5} />
           </div>
           {unreadNotifs > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center shadow-glow-sm">
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center z-10 shadow-sm">
               {unreadNotifs > 99 ? "99+" : unreadNotifs}
             </span>
           )}

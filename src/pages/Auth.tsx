@@ -22,7 +22,13 @@ const Auth = () => {
     </div>
   );
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    if (user.user_metadata?.needs_onboarding === true) {
+      return <Navigate to="/onboarding" replace />;
+    } else {
+      return <Navigate to="/" replace />;
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

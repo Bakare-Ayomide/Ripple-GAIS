@@ -73,15 +73,15 @@ const UserProfile = () => {
         <div className="flex gap-8 mb-4">
           <div className="text-center">
             <p className="font-display font-extrabold text-foreground">{userPosts.length}</p>
-            <p className="text-xs text-muted-foreground">Posts</p>
+            <p className="text-xs text-muted-foreground">Drops</p>
           </div>
           <div className="text-center">
             <p className="font-display font-extrabold text-foreground">{counts?.followers || 0}</p>
-            <p className="text-xs text-muted-foreground">Followers</p>
+            <p className="text-xs text-muted-foreground">Tides</p>
           </div>
           <div className="text-center">
             <p className="font-display font-extrabold text-foreground">{counts?.following || 0}</p>
-            <p className="text-xs text-muted-foreground">Following</p>
+            <p className="text-xs text-muted-foreground">Current</p>
           </div>
         </div>
 
@@ -93,7 +93,7 @@ const UserProfile = () => {
               : "gradient-brand text-primary-foreground shadow-glow"
           }`}
         >
-          {isFollowing ? "Following" : "Follow"}
+          {isFollowing ? "Flowing" : "Flow"}
         </button>
       </div>
 

@@ -36,15 +36,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, username: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username, display_name: username },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    return { error: error as Error | null };
+    try {
+      const normalizedUsername = username.toLowerCase().trim();
+      const { data: existingProfile, error: checkError } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("username", normalizedUsername)
+        .maybeSingle();
+
+      if (checkError) {
+        console.warn("Could not check duplicate username", checkError.message);
+      } else if (existingProfile) {
+        return { error: new Error(`The username '${username}' is already taken. Please choose a different one.`) };
+      }
+
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username, display_name: username, needs_onboarding: true },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      return { error: error as Error | null };
+    } catch (err: any) {
+      return { error: err as Error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {

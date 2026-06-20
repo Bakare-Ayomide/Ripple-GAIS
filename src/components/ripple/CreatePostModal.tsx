@@ -145,14 +145,14 @@ const CreatePostModal = ({ open, onClose }: Props) => {
         additionalFiles: mediaFiles.slice(1).map((m) => m.file),
         onProgress: (p) => setUploadPct(p),
       });
-      toast.success("Post created!");
+      toast.success("Drop streamed!");
       setUploadPct(0);
       setCaption("");
       mediaFiles.forEach((m) => URL.revokeObjectURL(m.preview));
       setMediaFiles([]);
       onClose();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create post");
+      toast.error(err.message || "Failed to stream drop");
     }
   };
 
@@ -172,7 +172,7 @@ const CreatePostModal = ({ open, onClose }: Props) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-background/50 backdrop-blur-[24px]"
           onClick={resetAndClose}
         >
           <motion.div
@@ -180,11 +180,11 @@ const CreatePostModal = ({ open, onClose }: Props) => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-card rounded-t-3xl sm:rounded-3xl border border-border shadow-elevated w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="bg-card/75 rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-elevated w-full max-w-lg max-h-[90vh] overflow-y-auto backdrop-blur-xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card z-10 rounded-t-3xl">
-              <h2 className="font-display font-extrabold text-lg text-foreground">New Ripple</h2>
+              <h2 className="font-display font-extrabold text-lg text-foreground">Drop in the Stream</h2>
               <button onClick={resetAndClose} className="p-2 rounded-xl hover:bg-secondary transition-colors">
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
@@ -247,7 +247,7 @@ const CreatePostModal = ({ open, onClose }: Props) => {
                 ref={textareaRef}
                 value={caption}
                 onChange={handleCaptionChange}
-                placeholder="Write a caption... use # for hashtags, @ for mentions"
+                placeholder="Drop your thoughts... use # for lagoons, @ for crew members"
                 rows={3}
                 className="w-full bg-secondary rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none focus:ring-2 focus:ring-primary transition-all"
               />
@@ -325,14 +325,14 @@ const CreatePostModal = ({ open, onClose }: Props) => {
             {/* Submit */}
             <div className="px-5 pb-5 space-y-3">
               {createPost.isPending && (
-                <UploadProgress value={uploadPct} label={`Posting ripple ${mediaFiles.length > 1 ? `(${mediaFiles.length} files)` : ""}`} />
+                <UploadProgress value={uploadPct} label={`Streaming your drop ${mediaFiles.length > 1 ? `(${mediaFiles.length} files)` : ""}`} />
               )}
               <button
                 onClick={handleSubmit}
                 disabled={createPost.isPending || (mediaFiles.length === 0 && !caption.trim())}
                 className="w-full py-3.5 rounded-2xl gradient-brand text-primary-foreground font-display font-extrabold shadow-glow disabled:opacity-50 transition-all flex items-center justify-center gap-2"
               >
-                {createPost.isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> {Math.round(uploadPct)}%</> : "Drop Ripple"}
+                {createPost.isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> {Math.round(uploadPct)}%</> : "Drop in Stream"}
               </button>
             </div>
           </motion.div>

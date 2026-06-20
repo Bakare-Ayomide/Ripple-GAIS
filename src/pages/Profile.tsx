@@ -1,5 +1,6 @@
 import { Settings, Grid3X3, Bookmark, Flame, LogOut, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useFollowCounts } from "@/hooks/useFollows";
@@ -14,6 +15,7 @@ const formatNumber = (n: number) => {
 };
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"posts" | "saved" | "waves">("posts");
   const { signOut, user } = useAuth();
   const { data: profile, isLoading } = useProfile();
@@ -41,37 +43,46 @@ const Profile = () => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-3 flex-wrap">
               <h2 className="text-xl lg:text-2xl font-display font-extrabold text-foreground flex items-center gap-2">{profile?.username || "user"}<VerifiedBadge verified={(profile as any)?.is_verified} size={18} /></h2>
-              <button className="px-4 py-1.5 rounded-xl bg-secondary text-sm font-display font-bold text-foreground hover:bg-muted transition-colors">
-                Edit profile
+              <button 
+                onClick={() => navigate("/onboarding")}
+                className="px-4 py-1.5 rounded-xl bg-secondary text-sm font-display font-bold text-foreground hover:bg-muted transition-colors"
+                title="Review Sailor Alignment & Shape Stream"
+              >
+                Edit Shore
               </button>
-              <button onClick={signOut} className="p-2 rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
-                <LogOut className="w-5 h-5" />
+              <button
+                onClick={signOut}
+                className="btn-liquid-glass-base btn-liquid-glass-secondary flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-display font-extrabold text-foreground active:scale-95 shadow-sm"
+                title="Leave Crew"
+              >
+                <LogOut className="w-4 h-4 text-foreground/80 font-bold" />
+                <span>Logout</span>
               </button>
             </div>
             <div className="flex gap-6 mb-3">
               {[
-                { value: myPosts.length, label: "posts" },
-                { value: counts?.followers || 0, label: "followers" },
-                { value: counts?.following || 0, label: "following" },
+                { value: myPosts.length, label: "drops" },
+                { value: counts?.followers || 0, label: "tides" },
+                { value: counts?.following || 0, label: "current" },
               ].map(stat => (
                 <div key={stat.label} className="text-center lg:text-left">
                   <p className="text-lg font-display font-extrabold text-foreground">{formatNumber(stat.value)}</p>
-                  <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
+                  <p className="text-xs text-muted-foreground font-medium capitalize">{stat.label}</p>
                 </div>
               ))}
             </div>
-            <p className="hidden lg:block text-sm text-secondary-foreground leading-relaxed">{profile?.bio || "No bio yet"}</p>
+            <p className="hidden lg:block text-sm text-secondary-foreground leading-relaxed">{profile?.bio || "No sea bio yet"}</p>
           </div>
         </div>
-        <p className="lg:hidden text-sm text-secondary-foreground mt-3 leading-relaxed">{profile?.bio || "No bio yet"}</p>
+        <p className="lg:hidden text-sm text-secondary-foreground mt-3 leading-relaxed">{profile?.bio || "No sea bio yet"}</p>
       </div>
 
       {/* Tabs */}
       <div className="flex bg-card rounded-2xl border border-border p-1 mb-4">
         {[
-          { key: "posts" as const, icon: Grid3X3, label: "Posts" },
-          { key: "saved" as const, icon: Bookmark, label: "Saved" },
-          { key: "waves" as const, icon: Flame, label: "Waves" },
+          { key: "posts" as const, icon: Grid3X3, label: "Drops" },
+          { key: "saved" as const, icon: Bookmark, label: "Anchored" },
+          { key: "waves" as const, icon: Flame, label: "Splashes" },
         ].map(({ key, icon: Icon, label }) => (
           <button
             key={key}

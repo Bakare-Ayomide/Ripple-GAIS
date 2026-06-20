@@ -96,7 +96,7 @@ const PostViewerModal = ({ post, onClose }: Props) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 flex items-center justify-center bg-black"
+      className="fixed inset-0 flex items-center justify-center bg-background/50 backdrop-blur-[24px]"
       style={{ zIndex: 99998 }}
       onClick={onClose}
     >
@@ -106,7 +106,7 @@ const PostViewerModal = ({ post, onClose }: Props) => {
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full h-full max-w-[480px] mx-auto overflow-hidden"
+        className="relative w-full h-full sm:h-[85vh] max-w-[480px] mx-auto overflow-hidden sm:rounded-3xl backdrop-blur-xl bg-black/35 sm:border sm:border-white/10 shadow-glow"
         drag="y"
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.3}
@@ -203,58 +203,58 @@ const PostViewerModal = ({ post, onClose }: Props) => {
         {/* Back button */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white"
+          className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full btn-liquid-glass-base btn-liquid-glass-secondary flex items-center justify-center text-white shadow-glow transition-all active:scale-90"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-5.5 h-5.5" />
         </button>
 
         {/* Right-side action icons */}
-        <div className="absolute right-4 bottom-48 z-20 flex flex-col items-center gap-5">
+        <div className="absolute right-4 bottom-[20%] z-20 flex flex-col items-center gap-5">
           <div className="flex flex-col items-center gap-1">
-            <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-              <Eye className="w-6 h-6 text-white" />
+            <button className="w-12 h-12 rounded-full btn-liquid-glass-base btn-liquid-glass-secondary flex items-center justify-center shadow-glow transition-all active:scale-95">
+              <Eye className="w-5.5 h-5.5 text-white" />
             </button>
-            <span className="text-white text-[11px] font-display font-bold">{formatCount(post.likes_count + (post.comments_count || 0))}</span>
+            <span className="text-white text-[11px] font-display font-bold shadow-md">{formatCount(post.likes_count + (post.comments_count || 0))}</span>
           </div>
 
           <div className="flex flex-col items-center gap-1">
             <motion.button
               whileTap={{ scale: 1.3 }}
               onClick={() => toggleLike.mutate({ postId: post.id, isLiked: !!post.is_liked })}
-              className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                post.is_liked ? "bg-accent/30" : "bg-white/10 backdrop-blur-sm"
+              className={`w-12 h-12 rounded-full btn-liquid-glass-base flex items-center justify-center shadow-glow transition-all active:scale-95 ${
+                post.is_liked ? "btn-liquid-glass-primary text-accent shadow-glow-sm" : "btn-liquid-glass-secondary text-white"
               }`}
             >
-              <svg className={`w-6 h-6 ${post.is_liked ? "text-accent fill-accent" : "text-white"}`} fill={post.is_liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <svg className={`w-5.5 h-5.5 ${post.is_liked ? "text-accent fill-accent" : "text-white"}`} fill={post.is_liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
             </motion.button>
-            <span className="text-white text-[11px] font-display font-bold">{formatCount(post.likes_count)}</span>
+            <span className="text-white text-[11px] font-display font-bold shadow-md">{formatCount(post.likes_count)}</span>
           </div>
 
           <div className="flex flex-col items-center gap-1">
-            <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-              <Share2 className="w-6 h-6 text-white" />
+            <button className="w-12 h-12 rounded-full btn-liquid-glass-base btn-liquid-glass-secondary flex items-center justify-center shadow-glow transition-all active:scale-95">
+              <Share2 className="w-5.5 h-5.5 text-white" />
             </button>
-            <span className="text-white text-[11px] font-display font-bold">{formatCount(post.comments_count || 0)}</span>
+            <span className="text-white text-[11px] font-display font-bold shadow-md">{formatCount(post.comments_count || 0)}</span>
           </div>
         </div>
 
-        {/* Bottom content overlay */}
-        <div className="absolute bottom-0 left-0 right-16 z-20 px-5 pb-6">
+        {/* Bottom content overlay in beautiful translucent card */}
+        <div className="absolute bottom-4 left-4 right-20 z-20 p-4 rounded-2xl backdrop-blur-md bg-black/45 border border-white/10 shadow-elevated">
           {hashtags.length > 0 && (
             <div className="mb-2">
-              <span className="inline-block px-3 py-1 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-display font-extrabold uppercase tracking-wider">
+              <span className="inline-block px-3 py-1 rounded-full bg-primary/95 text-primary-foreground text-[10px] font-display font-extrabold uppercase tracking-wider">
                 {hashtags[0].slice(1)}
               </span>
             </div>
           )}
 
           {post.caption && (
-            <div className="mb-2">
+            <div className="mb-2.5 max-h-[120px] overflow-y-auto scrollbar-none">
               <RichCaption
                 text={post.caption.replace(/#\w+/g, "").trim()}
-                className="text-white font-display font-extrabold text-lg leading-snug drop-shadow-lg block"
+                className="text-white font-display font-extrabold text-base leading-snug drop-shadow-lg block"
                 hashtagClass="text-accent font-extrabold"
                 mentionClass="text-accent font-extrabold"
               />
@@ -262,24 +262,24 @@ const PostViewerModal = ({ post, onClose }: Props) => {
           )}
 
           {hashtags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-1.5 mb-3">
               {hashtags.map((tag, i) => (
                 <RichCaption
                   key={i}
                   text={tag}
-                  className="text-white/70 text-xs font-display font-bold"
-                  hashtagClass="text-white/70 hover:text-white cursor-pointer"
-                  mentionClass="text-white/70"
+                  className="text-white/80 hover:text-white text-xs font-display font-bold cursor-pointer"
+                  hashtagClass="text-white/80 hover:text-white"
+                  mentionClass="text-white/80"
                 />
               ))}
             </div>
           )}
 
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-white/30">
+          <div className="flex items-center gap-2.5 pt-1.5 border-t border-white/10">
+            <div className="w-7 h-7 rounded-full overflow-hidden border border-white/20 flex-shrink-0">
               <img src={profile?.avatar_url || ""} alt="" className="w-full h-full object-cover" />
             </div>
-            <span className="text-white text-sm font-display font-bold">
+            <span className="text-white/90 text-xs font-display font-bold truncate">
               @{profile?.username || "user"}
             </span>
           </div>

@@ -46,8 +46,8 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
     <article
       className={`rounded-3xl overflow-hidden mb-4 border transition-all relative z-0 ${
         featured
-          ? "bg-primary/90 border-primary/30 shadow-glow"
-          : "bg-card border-border shadow-card"
+          ? "backdrop-blur-xl bg-primary/85 border-primary/40 shadow-glow"
+          : "backdrop-blur-xl bg-card/65 border-white/10 shadow-card"
       }`}
     >
       {/* Header */}
@@ -166,14 +166,14 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
 
       {post.likes_count > 0 && (
         <div className="px-4 pb-2">
-          <p className={`text-xs font-display font-bold ${featured ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{formatNumber(post.likes_count)} flames</p>
+          <p className={`text-xs font-display font-bold ${featured ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{formatNumber(post.likes_count)} splashes</p>
         </div>
       )}
 
       {post.comments_count > 0 && (
         <div className="px-4 pb-3">
           <button onClick={() => setShowComments(!showComments)} className={`text-xs font-semibold ${featured ? "text-primary-foreground/50" : "text-muted-foreground"}`}>
-            View all {formatNumber(post.comments_count)} comments
+            Listen to all {formatNumber(post.comments_count)} echoes
           </button>
         </div>
       )}
@@ -197,7 +197,7 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleComment()}
-                placeholder="Add a comment..."
+                placeholder="Echo your thoughts..."
                 className={`flex-1 rounded-full px-4 py-2 text-xs outline-none ${featured ? "bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/40" : "bg-secondary text-foreground placeholder:text-muted-foreground"}`}
               />
               <button onClick={handleComment} disabled={!commentText.trim()} className="w-9 h-9 rounded-full gradient-brand text-primary-foreground flex items-center justify-center disabled:opacity-50">

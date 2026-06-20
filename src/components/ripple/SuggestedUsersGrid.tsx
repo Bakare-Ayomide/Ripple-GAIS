@@ -20,7 +20,7 @@ const FollowButton = ({ userId }: { userId: string }) => {
           : "bg-foreground text-background"
       }`}
     >
-      {isFollowing ? "Following" : "Follow"}
+      {isFollowing ? "Flowing" : "Flow"}
     </motion.button>
   );
 };
@@ -194,7 +194,7 @@ const SuggestedUsersGrid = () => {
     <div className="mb-4 relative z-0">
       <div className="flex items-center justify-between mb-3 px-1">
         <h3 className="font-display font-extrabold text-base text-foreground">
-          Discover People
+          Find Crew
         </h3>
         <button className="text-xs font-display font-bold text-primary">
           See all
