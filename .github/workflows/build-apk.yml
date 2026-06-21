@@ -13,77 +13,64 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 🔥 FORCE JAVA 17 (Capacitor Android stable)
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      # Node (safe LTS, NOT 22 — avoids tooling conflicts)
+      # Use Node 20 LTS (safe for Capacitor 7)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci || npm install
+      - name: Install dependencies (FIXED)
+        run: npm install
 
-      # Build frontend (Vite output → dist)
       - name: Build Web App
         run: npm run build
         env:
           VITE_SUPABASE_URL: "https://mock-supabase.ripple.com"
           VITE_SUPABASE_ANON_KEY: "mock-anon-key"
 
-      # 🔥 FORCE STABLE CAPACITOR VERSION (CRITICAL FIX)
-      - name: Install Capacitor 7 (Java 17 compatible)
+      - name: Install Capacitor 7 (Java 17 safe)
         run: |
           npm install @capacitor/core@7.4.3 @capacitor/cli@7.4.3 @capacitor/android@7.4.3
 
-      # Initialize ONLY if missing (prevents CI rebuild corruption)
       - name: Init Capacitor (safe)
         run: |
           if [ ! -f capacitor.config.ts ] && [ ! -f capacitor.config.json ]; then
             npx cap init Ripple com.ripple.app --web-dir=dist
           fi
 
-      # Add Android only if missing
       - name: Add Android Platform
         run: |
           if [ ! -d android ]; then
             npx cap add android
           fi
 
-      # Sync web → native
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # Debug Java version (important for CI stability)
-      - name: Verify Java Environment
+      - name: Verify Java
         run: |
           java -version
           javac -version
 
-      # Build APK
-      - name: Build Android APK
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      # Rename APK
-      - name: Prepare ripple.apk
+      - name: Prepare APK
         run: |
           mkdir -p build-artifacts
           cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/ripple.apk
 
-      # Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ripple-apk
           path: build-artifacts/ripple.apk
-          if-no-files-found: error
-          retention-days: 14
