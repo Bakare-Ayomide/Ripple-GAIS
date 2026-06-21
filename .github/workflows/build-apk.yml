@@ -1,4 +1,4 @@
-name: Build Native Android App (ripple.apk)
+name: Build Ripple APK
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Java 17
@@ -19,7 +19,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -27,56 +27,45 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Web App
+      - name: Build web
         run: npm run build
-        env:
-          VITE_SUPABASE_URL: "https://mock-supabase.ripple.com"
-          VITE_SUPABASE_ANON_KEY: "mock-anon-key"
 
-      - name: Install Capacitor (stable v7)
+      # ❌ IMPORTANT: REMOVE old android folder completely
+      - name: Clean Android (force fresh generation)
+        run: rm -rf android
+
+      # 🔥 LOCK CAPACITOR VERSION (CRITICAL)
+      - name: Install Capacitor 7 ONLY
         run: |
           npm install @capacitor/core@7.4.3 @capacitor/cli@7.4.3 @capacitor/android@7.4.3
 
       - name: Init Capacitor
-        run: |
-          if [ ! -f capacitor.config.ts ] && [ ! -f capacitor.config.json ]; then
-            npx cap init Ripple com.ripple.app --web-dir=dist
-          fi
+        run: npx cap init Ripple com.ripple.app --web-dir=dist
 
-      - name: Add Android Platform
-        run: |
-          if [ ! -d android ]; then
-            npx cap add android
-          fi
+      - name: Add Android
+        run: npx cap add android
 
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 🔥 THIS IS THE FIX THAT ACTUALLY SOLVES YOUR ERROR
-      - name: Force Java 17 in Gradle (IMPORTANT)
+      # 🔥 FORCE SAFE JAVA 17 GRADLE CONFIG
+      - name: Force Java 17 Gradle config
         run: |
-          find android -type f -name "*.gradle" -exec sed -i 's/VERSION_21/VERSION_17/g' {} \;
-          find android -type f -name "*.gradle" -exec sed -i 's/sourceCompatibility *= *21/sourceCompatibility = 17/g' {} \;
-          find android -type f -name "*.gradle" -exec sed -i 's/targetCompatibility *= *21/targetCompatibility = 17/g' {} \;
+          sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' android/**/*.gradle || true
+          sed -i 's/sourceCompatibility = 21/sourceCompatibility = 17/g' android/**/*.gradle || true
+          sed -i 's/targetCompatibility = 21/targetCompatibility = 17/g' android/**/*.gradle || true
 
       - name: Verify Java
-        run: |
-          java -version
-          javac -version
+        run: java -version
 
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: Prepare APK
-        run: |
-          mkdir -p build-artifacts
-          cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/ripple.apk
+          ./gradlew clean assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ripple-apk
-          path: build-artifacts/ripple.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
