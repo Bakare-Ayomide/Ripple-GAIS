@@ -4,7 +4,6 @@ import fs from 'fs';
 import crypto from 'crypto';
 import mysql from 'mysql2/promise';
 import multer from 'multer';
-import { createServer as createViteServer } from 'vite';
 import * as ftp from 'basic-ftp';
 
 // Ensure uploads directory exists
@@ -1120,43 +1119,60 @@ async function executeFallbackSync(table: string, actions: any[], res: any) {
 const app = express();
 export default app;
 
-async function startServer() {
-  const PORT = 3000;
+// JSON and url-encoded body parsers
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-  // JSON and url-encoded body parsers
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Custom Router / serve route for local media uploads with FTP fallback download
+app.get('/uploads/:filename', async (req, res) => {
+  const filename = req.params.filename;
+  const localFile = path.join(uploadsDir, filename);
 
-  // Static serving for local media uploads
-  app.use('/uploads', express.static(uploadsDir));
+  if (fs.existsSync(localFile)) {
+    return res.sendFile(localFile);
+  }
 
-  // Initialize DB asynchronously
-  initDb().then(() => {
-    // Initial forced sync of posts from FTP server to localDB and MySQL on startup
-    syncPostsFromFtp(true).catch(err => console.error('[FTP Startup Sync Error]', err));
-  });
+  try {
+    await downloadUploadFromFtp(filename);
+    if (fs.existsSync(localFile)) {
+      return res.sendFile(localFile);
+    }
+  } catch (err: any) {
+    console.error(`[Serve Upload From FTP Error] Failed for ${filename}:`, err?.message);
+  }
 
-  // Periodically pull/sync posts in background every 60 seconds to detect additions from other clients
+  res.status(404).send('File not found');
+});
+
+// Initialize DB asynchronously
+initDb().then(() => {
+  // Initial forced sync of posts from FTP server to localDB and MySQL on startup
+  syncPostsFromFtp(true).catch(err => console.error('[FTP Startup Sync Error]', err));
+});
+
+// Periodically pull/sync posts in background every 60 seconds to detect additions from other clients (only if not on Vercel)
+if (process.env.VERCEL !== '1') {
   setInterval(() => {
     syncPostsFromFtp().catch(err => console.error('[FTP Interval Sync Error]', err));
   }, 60000);
+}
 
-  // API Health Indicator
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', database: useLocalFallback ? 'local_json' : 'mysql' });
+// API Health Indicator
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', database: useLocalFallback ? 'local_json' : 'mysql' });
+});
+
+// Admin DB Status Indicator
+app.get('/api/admin/db-status', (req, res) => {
+  res.json({
+    useLocalFallback,
+    host: '131.153.147.178',
+    database: 'zerolord_ripple',
+    poolActive: !!pool
   });
+});
 
-  // Admin DB Status Indicator
-  app.get('/api/admin/db-status', (req, res) => {
-    res.json({
-      useLocalFallback,
-      host: '131.153.147.178',
-      database: 'zerolord_ripple',
-      poolActive: !!pool
-    });
-  });
-
-  // Unified File Storage Upload Endpoint
+// Unified File Storage Upload Endpoint
   app.post('/api/storage/upload', upload.single('file'), (req, res) => {
     if (!req.file) {
       return res.status(400).send('No file uploaded.');
@@ -2262,25 +2278,29 @@ async function startServer() {
   });
 
   // Client Routing (Integrate Vite as Middleware for Development)
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa'
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+  async function boot() {
+    const PORT = 3000;
+
+    if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa'
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+
+    if (process.env.VERCEL !== '1') {
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`[Full-Stack Server] Ready on http://0.0.0.0:${PORT}`);
+      });
+    }
   }
 
-  if (process.env.VERCEL !== '1') {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`[Full-Stack Server] Ready on http://0.0.0.0:${PORT}`);
-    });
-  }
-}
-
-startServer();
+  boot();

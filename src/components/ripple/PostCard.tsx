@@ -7,11 +7,17 @@ import { useComments, useAddComment } from "@/hooks/useComments";
 import { formatDistanceToNow } from "date-fns";
 import RichCaption from "./RichCaption";
 import VerifiedBadge from "./VerifiedBadge";
+import { useCachedUrl, usePrefetchPostMedia } from "@/lib/mediaCache";
 
 const formatNumber = (n: number) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
   if (n >= 1000) return (n / 1000).toFixed(1) + "K";
   return n.toString();
+};
+
+const CachedImage = ({ src, className, alt = "" }: { src: string; className?: string; alt?: string }) => {
+  const cachedUrl = useCachedUrl(src);
+  return <img src={cachedUrl || src} alt={alt} className={className} />;
 };
 
 const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; featured?: boolean; onOpen?: () => void }) => {
@@ -26,6 +32,12 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
 
   // Parse multiple media URLs
   const mediaUrls = post.image_url?.split(",").map((u) => u.trim()).filter(Boolean) || [];
+
+  // Automatically prefetch all media in this post
+  usePrefetchPostMedia(mediaUrls);
+
+  // Get cached local URL for primary media
+  const leadMediaUrl = useCachedUrl(mediaUrls[0]);
 
   const handleDoubleTap = () => {
     if (!post.is_liked) {
@@ -101,7 +113,7 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
         <div className="relative mx-4 mb-3 rounded-2xl overflow-hidden cursor-pointer" onDoubleClick={handleDoubleTap} onClick={onOpen}>
           {/* Main image */}
           {(() => {
-            const url = mediaUrls[0];
+            const url = leadMediaUrl || mediaUrls[0];
             const isVid = post.media_type === "video" || /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
             const isAud = post.media_type === "audio" || /\.(mp3|wav|m4a|aac|flac)(\?|$)/i.test(url);
             if (isVid) return <video src={url} className="w-full aspect-[4/5] object-cover" autoPlay loop muted playsInline />;
@@ -125,7 +137,7 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
                   className="w-10 h-10 rounded-lg overflow-hidden border-2 border-card shadow-md"
                   style={{ zIndex: 3 - i }}
                 >
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <CachedImage src={url} className="w-full h-full object-cover" />
                 </div>
               ))}
               {mediaUrls.length > 4 && (

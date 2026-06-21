@@ -5,6 +5,7 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { X, Send, UserPlus, ChevronDown, Volume2, VolumeX } from "lucide-react";
 
 import RichCaption from "./RichCaption";
+import { useCachedUrl } from "@/lib/mediaCache";
 
 type Story = {
   id: string;
@@ -44,6 +45,7 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
 
   const group = groups[groupIdx];
   const story = group?.stories[storyIdx];
+  const cachedStoryUrl = useCachedUrl(story?.image_url);
 
   const resetTimer = useCallback(() => {
     setProgress(0);
@@ -153,7 +155,7 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
           >
             {(!story.media_type || story.media_type === "image") && (
               <img
-                src={story.image_url}
+                src={cachedStoryUrl || story.image_url}
                 alt=""
                 className="w-full h-full object-cover"
                 draggable={false}
@@ -162,7 +164,7 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
 
             {story.media_type === "video" && (
               <video
-                src={story.image_url}
+                src={cachedStoryUrl || story.image_url}
                 className="w-full h-full object-cover"
                 autoPlay
                 playsInline
@@ -206,7 +208,7 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
                 </div>
 
                 <audio
-                  src={story.image_url}
+                  src={cachedStoryUrl || story.image_url}
                   autoPlay
                   playsInline
                   loop

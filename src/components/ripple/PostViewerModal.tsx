@@ -6,6 +6,7 @@ import { ChevronLeft, Eye, Flame, Share2, Send } from "lucide-react";
 import { useToggleLike, useToggleSave, type PostWithProfile } from "@/hooks/usePosts";
 import { useComments, useAddComment } from "@/hooks/useComments";
 import RichCaption from "./RichCaption";
+import { useCachedUrl, usePrefetchPostMedia } from "@/lib/mediaCache";
 
 interface Props {
   post: PostWithProfile;
@@ -32,6 +33,12 @@ const PostViewerModal = ({ post, onClose }: Props) => {
 
   const profile = post.profiles;
   const mediaUrls = post.image_url?.split(",").map((u) => u.trim()).filter(Boolean) || [];
+
+  // Automatically prefetch all media for this post
+  usePrefetchPostMedia(mediaUrls);
+
+  // Retrieve cached URL for currently showing media item
+  const activeMediaUrl = useCachedUrl(mediaUrls[currentMediaIdx]);
 
   const handleComment = () => {
     if (!commentText.trim()) return;
@@ -139,7 +146,7 @@ const PostViewerModal = ({ post, onClose }: Props) => {
                   <video
                     key={`v-${currentMediaIdx}`}
                     ref={videoRef}
-                    src={mediaUrls[currentMediaIdx]}
+                    src={activeMediaUrl || mediaUrls[currentMediaIdx]}
                     autoPlay
                     loop
                     muted
@@ -151,11 +158,11 @@ const PostViewerModal = ({ post, onClose }: Props) => {
                     <div className="w-32 h-32 rounded-full gradient-brand flex items-center justify-center shadow-glow animate-pulse">
                       <svg className="w-14 h-14 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
                     </div>
-                    <audio src={mediaUrls[currentMediaIdx]} controls autoPlay className="w-full max-w-sm" />
+                    <audio src={activeMediaUrl || mediaUrls[currentMediaIdx]} controls autoPlay className="w-full max-w-sm" />
                   </div>
                 ) : (
                   <img
-                    src={mediaUrls[currentMediaIdx]}
+                    src={activeMediaUrl || mediaUrls[currentMediaIdx]}
                     alt=""
                     className="w-full h-full object-cover"
                   />
