@@ -30,23 +30,39 @@ const StoryComposer = ({ open, onClose }: Props) => {
   const [pct, setPct] = useState(0);
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
+  const [showHashtags, setShowHashtags] = useState(false);
+  const [hashtagSearch, setHashtagSearch] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const createStory = useCreateStory();
 
+  const TRENDING_HASHTAGS = [
+    "#DigitalArt", "#NightVibes", "#CodeLife", "#Wanderlust",
+    "#Photography", "#Music", "#Travel", "#Fitness",
+    "#FoodPorn", "#OOTD", "#Motivation", "#Gaming",
+    "#Ripple", "#Trending", "#Viral", "#Creative",
+  ];
+
+  const filteredHashtags = hashtagSearch && hashtagSearch.length > 1
+    ? TRENDING_HASHTAGS.filter((t) =>
+        t.toLowerCase().includes(hashtagSearch.replace("#", "").toLowerCase())
+      )
+    : TRENDING_HASHTAGS;
+
   const { data: mentionUsers } = useQuery({
     queryKey: ["mention-users-story", mentionSearch],
     queryFn: async () => {
-      const search = mentionSearch.replace("@", "");
-      if (!search) return [];
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, username, display_name, avatar_url")
-        .ilike("username", `%${search}%`)
-        .limit(6);
-      return data || [];
+      const search = mentionSearch.replace("@", "").trim();
+      const q = supabase.from("profiles").select("user_id, username, display_name, avatar_url");
+      if (!search) {
+        const { data } = await q.limit(6);
+        return data || [];
+      } else {
+        const { data } = await q.ilike("username", `%${search}%`).limit(6);
+        return data || [];
+      }
     },
-    enabled: showMentions && mentionSearch.length > 0,
+    enabled: showMentions,
   });
 
   useEffect(() => {
@@ -92,11 +108,17 @@ const StoryComposer = ({ open, onClose }: Props) => {
     setCaption(v);
     const cursor = e.target.selectionStart;
     const lastWord = v.slice(0, cursor).split(/\s/).pop() || "";
-    if (lastWord.startsWith("@") && lastWord.length > 0) {
+    if (lastWord.startsWith("@") && lastWord.length >= 1) {
       setMentionSearch(lastWord);
       setShowMentions(true);
+      setShowHashtags(false);
+    } else if (lastWord.startsWith("#") && lastWord.length >= 1) {
+      setHashtagSearch(lastWord);
+      setShowHashtags(true);
+      setShowMentions(false);
     } else {
       setShowMentions(false);
+      setShowHashtags(false);
     }
   };
 
@@ -293,16 +315,32 @@ const StoryComposer = ({ open, onClose }: Props) => {
                 {showMentions && mentionUsers && mentionUsers.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                    className="absolute left-0 right-0 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto z-20"
+                    className="absolute left-0 right-0 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto z-20 animate-fade-in"
                   >
                     {mentionUsers.map((u: any) => (
                       <button key={u.user_id} onClick={() => { insertText(`@${u.username}`); setShowMentions(false); }}
                         className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-secondary/80">
                         <img src={u.avatar_url || ""} className="w-8 h-8 rounded-full bg-secondary" />
                         <div>
-                          <p className="text-sm font-display font-bold">@{u.username}</p>
+                          <p className="text-sm font-display font-bold text-foreground">@{u.username}</p>
                           <p className="text-xs text-muted-foreground">{u.display_name}</p>
                         </div>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showHashtags && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                    className="absolute left-0 right-0 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
+                  >
+                    {filteredHashtags.map((tag) => (
+                      <button key={tag} onClick={() => { insertText(tag); setShowHashtags(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-primary font-semibold hover:bg-secondary/80">
+                        {tag}
                       </button>
                     ))}
                   </motion.div>

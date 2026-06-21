@@ -1209,7 +1209,7 @@ app.get('/api/admin/db-status', (req, res) => {
 
         const username = options?.data?.username || email.split('@')[0];
         const display_name = options?.data?.display_name || username;
-        const avatar_url = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(username)}`;
+        const avatar_url = options?.data?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(username)}`;
 
         localDb.profiles.push({
           id: crypto.randomUUID(),
@@ -1271,7 +1271,7 @@ app.get('/api/admin/db-status', (req, res) => {
 
       const username = options?.data?.username || email.split('@')[0];
       const display_name = options?.data?.display_name || username;
-      const avatar_url = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(username)}`;
+      const avatar_url = options?.data?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(username)}`;
 
       await pool.query(
         `INSERT INTO profiles (id, user_id, username, display_name, avatar_url, bio, is_verified) VALUES (?, ?, ?, ?, ?, ?, FALSE)`,
@@ -1534,6 +1534,57 @@ app.get('/api/admin/db-status', (req, res) => {
     } catch (e) {
       res.status(401).send('Token invalid');
     }
+  });
+
+  // GET current default avatars config
+  app.get('/api/admin/default-avatars', (req, res) => {
+    const avatarsConfigPath = path.join(uploadsDir, 'custom_default_avatars.json');
+    let currentConfigs: any = { male: [], female: [], nonbinary: [] };
+    try {
+      if (fs.existsSync(avatarsConfigPath)) {
+        currentConfigs = JSON.parse(fs.readFileSync(avatarsConfigPath, 'utf8'));
+      }
+    } catch (e) {
+      // ignore
+    }
+    res.json({ success: true, configs: currentConfigs });
+  });
+
+  // POST newly uploaded custom default avatar for a gender
+  app.post('/api/admin/default-avatars', upload.single('file'), async (req, res) => {
+    const { gender } = req.body;
+    if (!gender || !['male', 'female', 'nonbinary'].includes(gender)) {
+      return res.status(400).send('Gender must be male, female, or nonbinary.');
+    }
+    if (!req.file) {
+      return res.status(400).send('No file uploaded.');
+    }
+
+    const publicUrl = `/uploads/${req.file.filename}`;
+    const avatarsConfigPath = path.join(uploadsDir, 'custom_default_avatars.json');
+    let currentConfigs: any = { male: [], female: [], nonbinary: [] };
+    
+    try {
+      if (fs.existsSync(avatarsConfigPath)) {
+        currentConfigs = JSON.parse(fs.readFileSync(avatarsConfigPath, 'utf8'));
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    if (!Array.isArray(currentConfigs[gender])) {
+      currentConfigs[gender] = [];
+    }
+    currentConfigs[gender].unshift(publicUrl);
+
+    fs.writeFileSync(avatarsConfigPath, JSON.stringify(currentConfigs, null, 2), 'utf8');
+
+    // Sync to FTP if basic-ftp operates
+    saveUploadToFtp(req.file.filename).catch(err => {
+      console.error('[FTP Default Avatar Sync Error]', err);
+    });
+
+    res.json({ success: true, configs: currentConfigs, url: publicUrl });
   });
 
   // Administrative CRUD Operations

@@ -8,6 +8,8 @@ import { formatDistanceToNow } from "date-fns";
 import RichCaption from "./RichCaption";
 import VerifiedBadge from "./VerifiedBadge";
 import { useCachedUrl, usePrefetchPostMedia } from "@/lib/mediaCache";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const formatNumber = (n: number) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
@@ -25,6 +27,68 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
   const [showHeart, setShowHeart] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [showMentions, setShowMentions] = useState(false);
+  const [showHashtags, setShowHashtags] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [hashtagSearch, setHashtagSearch] = useState("");
+
+  const TRENDING_HASHTAGS = [
+    "#DigitalArt", "#NightVibes", "#CodeLife", "#Wanderlust",
+    "#Photography", "#Music", "#Travel", "#Fitness",
+    "#FoodPorn", "#OOTD", "#Motivation", "#Gaming",
+    "#Ripple", "#Trending", "#Viral", "#Creative",
+  ];
+
+  const filteredHashtags = hashtagSearch && hashtagSearch.length > 1
+    ? TRENDING_HASHTAGS.filter((t) =>
+        t.toLowerCase().includes(hashtagSearch.replace("#", "").toLowerCase())
+      )
+    : TRENDING_HASHTAGS;
+
+  const { data: mentionUsers } = useQuery({
+    queryKey: ["mention-users-comment", mentionSearch],
+    queryFn: async () => {
+      const search = mentionSearch.replace("@", "").trim();
+      const q = supabase.from("profiles").select("user_id, username, display_name, avatar_url");
+      if (!search) {
+        const { data } = await q.limit(6);
+        return data || [];
+      } else {
+        const { data } = await q.ilike("username", `%${search}%`).limit(6);
+        return data || [];
+      }
+    },
+    enabled: showMentions,
+  });
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCommentText(val);
+    const cursor = e.target.selectionStart || 0;
+    const textBefore = val.slice(0, cursor);
+    const lastWord = textBefore.split(/\s/).pop() || "";
+
+    if (lastWord.startsWith("@") && lastWord.length >= 1) {
+      setMentionSearch(lastWord);
+      setShowMentions(true);
+      setShowHashtags(false);
+    } else if (lastWord.startsWith("#") && lastWord.length >= 1) {
+      setHashtagSearch(lastWord);
+      setShowHashtags(true);
+      setShowMentions(false);
+    } else {
+      setShowMentions(false);
+      setShowHashtags(false);
+    }
+  };
+
+  const insertCommentText = (text: string) => {
+    const pos = commentText.split(/\s/);
+    pos[pos.length - 1] = text;
+    setCommentText(pos.join(" ") + " ");
+    setShowMentions(false);
+    setShowHashtags(false);
+  };
   const toggleLike = useToggleLike();
   const toggleSave = useToggleSave();
   const { data: comments } = useComments(showComments ? post.id : "");
@@ -236,17 +300,67 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
                 </div>
               ))}
             </div>
-            <div className="flex gap-2 px-4 py-3">
-              <input
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleComment()}
-                placeholder="Echo your thoughts..."
-                className={`flex-1 rounded-full px-4 py-2 text-xs outline-none ${featured ? "bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/40" : "bg-secondary text-foreground placeholder:text-muted-foreground"}`}
-              />
-              <button onClick={handleComment} disabled={!commentText.trim()} className="w-9 h-9 rounded-full gradient-brand text-primary-foreground flex items-center justify-center disabled:opacity-50">
-                <Send className="w-4 h-4" />
-              </button>
+            <div className="relative px-4 py-3">
+              {/* Mentions dropdown */}
+              <AnimatePresence>
+                {showMentions && mentionUsers && mentionUsers.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute left-4 right-4 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
+                  >
+                    {mentionUsers.map((u: any) => (
+                      <button
+                        key={u.user_id}
+                        onClick={() => insertCommentText(`@${u.username}`)}
+                        className="w-full text-left px-4 py-2 flex items-center gap-2.5 hover:bg-secondary/80 transition-colors first:rounded-t-2xl last:rounded-b-2xl"
+                      >
+                        <img src={u.avatar_url || ""} alt="" className="w-6 h-6 rounded-full bg-secondary" />
+                        <div>
+                          <p className="text-xs font-display font-bold text-foreground">@{u.username}</p>
+                          <p className="text-[10px] text-muted-foreground">{u.display_name}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Hashtags dropdown */}
+              <AnimatePresence>
+                {showHashtags && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute left-4 right-4 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
+                  >
+                    {filteredHashtags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => insertCommentText(tag)}
+                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-primary hover:bg-secondary/80 transition-colors"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex gap-2">
+                <input
+                  value={commentText}
+                  onChange={handleCommentChange}
+                  onKeyDown={(e) => e.key === "Enter" && handleComment()}
+                  placeholder="Echo your thoughts..."
+                  className={`flex-1 rounded-full px-4 py-2 text-xs outline-none ${featured ? "bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/40" : "bg-secondary text-foreground placeholder:text-muted-foreground"}`}
+                />
+                <button onClick={handleComment} disabled={!commentText.trim()} className="w-9 h-9 rounded-full gradient-brand text-primary-foreground flex items-center justify-center disabled:opacity-50">
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

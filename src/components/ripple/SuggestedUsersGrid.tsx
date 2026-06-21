@@ -26,9 +26,9 @@ const FollowButton = ({ userId }: { userId: string }) => {
 };
 
 const STACK_COLORS = [
-  "bg-gradient-to-br from-accent to-accent/70",
-  "bg-gradient-to-br from-primary to-primary/70",
-  "bg-gradient-to-br from-yellow-400 to-orange-500",
+  "bg-gradient-to-br from-emerald-500/20 to-emerald-400/10 border border-emerald-500/40 backdrop-blur-md",
+  "bg-gradient-to-br from-emerald-600/20 to-emerald-500/10 border border-emerald-500/30 backdrop-blur-md",
+  "bg-gradient-to-br from-emerald-700/20 to-emerald-600/10 border border-emerald-500/20 backdrop-blur-md",
 ];
 
 const SwipeableCardDeck = ({ users }: { users: any[] }) => {
@@ -102,7 +102,7 @@ const SwipeableCardDeck = ({ users }: { users: any[] }) => {
       <AnimatePresence mode="popLayout">
         <motion.div
           key={activeUser.user_id}
-          className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl border border-border touch-none"
+          className="absolute inset-0 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.25)] border border-emerald-500/30 backdrop-blur-xl touch-none"
           style={{ zIndex: 10 }}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
@@ -121,31 +121,34 @@ const SwipeableCardDeck = ({ users }: { users: any[] }) => {
           whileTap={{ scale: 0.98 }}
           whileDrag={{ cursor: "grabbing", scale: 1.02 }}
         >
-          {/* Red gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/90 via-primary to-primary/80" />
+          {/* Emerald green background */}
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-950 via-emerald-900 to-emerald-950/90" />
+
+          {/* Glassy shimmer reflection glare */}
+          <div className="absolute top-0.5 inset-x-2 h-[25%] rounded-b-full bg-gradient-to-b from-white/10 to-transparent pointer-events-none z-10" />
 
           {/* Dismiss button */}
           <button
             onClick={handleDismiss}
-            className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-background/20 backdrop-blur-sm flex items-center justify-center"
+            className="absolute top-2 right-2 z-20 w-5 h-5 rounded-full bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center border border-emerald-500/30"
           >
-            <X className="w-3 h-3 text-primary-foreground/70" />
+            <X className="w-3 h-3 text-emerald-300" />
           </button>
 
           {/* Top text */}
           <div className="relative z-10 pt-3 px-3 text-center">
-            <p className="text-sm font-display font-extrabold text-primary-foreground leading-tight truncate">
+            <p className="text-sm font-display font-extrabold text-foreground leading-tight truncate">
               {activeUser.display_name || activeUser.username || "User"}
             </p>
-            <p className="text-[10px] text-primary-foreground/60 font-medium flex items-center justify-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse" />
+            <p className="text-[10px] text-emerald-400 font-medium flex items-center justify-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
               Connecting
             </p>
           </div>
 
           {/* User photo */}
           <div className="relative z-10 flex justify-center mt-2 px-4">
-            <div className="w-[100px] h-[100px] rounded-xl overflow-hidden border-2 border-primary-foreground/20 shadow-md">
+            <div className="w-[100px] h-[100px] rounded-xl overflow-hidden border-2 border-emerald-500/30 shadow-md">
               <img
                 src={activeUser.avatar_url || ""}
                 alt={activeUser.username}
@@ -155,8 +158,8 @@ const SwipeableCardDeck = ({ users }: { users: any[] }) => {
           </div>
 
           {/* Bottom info bar */}
-          <div className="absolute bottom-0 inset-x-0 z-10 bg-card/95 backdrop-blur-sm px-2.5 py-2 flex items-center gap-2 border-t border-border/30">
-            <div className="w-7 h-7 rounded-full overflow-hidden border border-border flex-shrink-0">
+          <div className="absolute bottom-0 inset-x-0 z-10 bg-emerald-950/90 backdrop-blur-md px-2.5 py-2 flex items-center gap-2 border-t border-emerald-500/20">
+            <div className="w-7 h-7 rounded-full overflow-hidden border border-emerald-500/20 flex-shrink-0">
               <img
                 src={activeUser.avatar_url || ""}
                 alt={activeUser.username}

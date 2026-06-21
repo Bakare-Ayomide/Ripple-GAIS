@@ -66,7 +66,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Robin&backgroundType=gradientLinear&backgroundRotation=150&backgroundColor=f97316,e11d48"
       ];
 
-      const list = gender === "male" ? MALE_AVATARS : gender === "female" ? FEMALE_AVATARS : NONBINARY_AVATARS;
+      let list = gender === "male" ? MALE_AVATARS : gender === "female" ? FEMALE_AVATARS : NONBINARY_AVATARS;
+      
+      try {
+        const avatarsRes = await fetch('/api/admin/default-avatars');
+        if (avatarsRes.ok) {
+          const avatarsData = await avatarsRes.json();
+          if (avatarsData?.success && avatarsData?.configs?.[gender] && avatarsData.configs[gender].length > 0) {
+            list = avatarsData.configs[gender];
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load dynamic default avatars, falling back", err);
+      }
+
       const defaultAvatar = list[Math.floor(Math.random() * list.length)];
 
       const { data, error } = await supabase.auth.signUp({

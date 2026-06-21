@@ -42,16 +42,17 @@ const CreatePostModal = ({ open, onClose }: Props) => {
   const { data: mentionUsers } = useQuery({
     queryKey: ["mention-users", mentionSearch],
     queryFn: async () => {
-      if (!mentionSearch || mentionSearch.length < 1) return [];
-      const search = mentionSearch.replace("@", "");
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, username, display_name, avatar_url")
-        .ilike("username", `%${search}%`)
-        .limit(6);
-      return data || [];
+      const search = mentionSearch.replace("@", "").trim();
+      const q = supabase.from("profiles").select("user_id, username, display_name, avatar_url");
+      if (!search) {
+        const { data } = await q.limit(6);
+        return data || [];
+      } else {
+        const { data } = await q.ilike("username", `%${search}%`).limit(6);
+        return data || [];
+      }
     },
-    enabled: showMentions && mentionSearch.length > 0,
+    enabled: showMentions,
   });
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,9 +109,11 @@ const CreatePostModal = ({ open, onClose }: Props) => {
     setMentionSearch("");
   };
 
-  const filteredHashtags = TRENDING_HASHTAGS.filter((t) =>
-    t.toLowerCase().includes(hashtagSearch.toLowerCase())
-  );
+  const filteredHashtags = hashtagSearch && hashtagSearch.length > 1
+    ? TRENDING_HASHTAGS.filter((t) =>
+        t.toLowerCase().includes(hashtagSearch.replace("#", "").toLowerCase())
+      )
+    : TRENDING_HASHTAGS;
 
   const handleCaptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
@@ -119,11 +122,11 @@ const CreatePostModal = ({ open, onClose }: Props) => {
     const textBefore = val.slice(0, cursor);
     const lastWord = textBefore.split(/\s/).pop() || "";
 
-    if (lastWord.startsWith("#") && lastWord.length > 1) {
+    if (lastWord.startsWith("#") && lastWord.length >= 1) {
       setHashtagSearch(lastWord);
       setShowHashtags(true);
       setShowMentions(false);
-    } else if (lastWord.startsWith("@") && lastWord.length > 0) {
+    } else if (lastWord.startsWith("@") && lastWord.length >= 1) {
       setMentionSearch(lastWord);
       setShowMentions(true);
       setShowHashtags(false);

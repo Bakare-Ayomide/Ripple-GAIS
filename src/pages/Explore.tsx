@@ -2,6 +2,33 @@ import { usePosts } from "@/hooks/usePosts";
 import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useCachedUrl } from "@/lib/mediaCache";
+
+const ExploreItem = ({ post, isLarge }: { post: any; isLarge: boolean }) => {
+  const mediaUrls = post.image_url?.split(",").map((u: any) => u.trim()).filter(Boolean) || [];
+  const primaryMediaUrl = mediaUrls[0] || "";
+  const cachedUrl = useCachedUrl(primaryMediaUrl);
+
+  return (
+    <motion.button
+      whileTap={{ scale: 0.97 }}
+      className={`relative overflow-hidden rounded-2xl group ${isLarge ? "col-span-2 row-span-2" : ""}`}
+    >
+      {primaryMediaUrl ? (
+        <img
+          src={cachedUrl || primaryMediaUrl}
+          alt=""
+          className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+      ) : (
+        <div className="w-full aspect-square bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center p-3 text-[10px] text-muted-foreground font-mono">
+          <span className="line-clamp-4">{post.caption || "Text Ripple"}</span>
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+    </motion.button>
+  );
+};
 
 const Explore = () => {
   const { data: posts } = usePosts();
@@ -39,18 +66,7 @@ const Explore = () => {
         {allPosts.map((post, i) => {
           const isLarge = i % 5 === 0;
           return (
-            <motion.button
-              key={post.id}
-              whileTap={{ scale: 0.97 }}
-              className={`relative overflow-hidden rounded-2xl group ${isLarge ? "col-span-2 row-span-2" : ""}`}
-            >
-              <img
-                src={post.image_url || ""}
-                alt=""
-                className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            </motion.button>
+            <ExploreItem key={post.id} post={post} isLarge={isLarge} />
           );
         })}
         {!allPosts.length && (

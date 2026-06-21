@@ -39,7 +39,7 @@ const Admin = () => {
   const { data: isAdmin, isLoading: checkingAdmin } = useIsAdmin();
   const { data: users, refetch: refetchUsers } = useAllUsers();
   const { data: posts, refetch: refetchPosts } = useAllPosts();
-  const [tab, setTab] = useState<"overview" | "users" | "posts">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "posts" | "avatars">("overview");
   const [search, setSearch] = useState("");
   const qc = useQueryClient();
 
@@ -429,6 +429,18 @@ const Admin = () => {
             <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/35 text-foreground font-mono">
               {posts?.length || 0}
             </span>
+          </button>
+
+          <button
+            onClick={() => setTab("avatars")}
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left lg:w-full ${
+              tab === "avatars"
+                ? "bg-primary text-primary-foreground shadow-glow"
+                : "bg-card border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+            }`}
+          >
+            <PenTool className="w-5 h-5 flex-shrink-0" />
+            <span className="whitespace-nowrap">Default Avatars</span>
           </button>
         </div>
 
@@ -1121,10 +1133,132 @@ const Admin = () => {
             </div>
           )}
 
+          {/* TAB 4: DEFAULT AVATARS */}
+          {tab === "avatars" && (
+            <div className="space-y-6">
+              <div className="bg-card border border-border rounded-3xl p-6">
+                <div className="mb-4">
+                  <h2 className="font-display font-extrabold text-lg text-foreground flex items-center gap-2">
+                    <PenTool className="w-5 h-5 text-emerald-400 animate-pulse" /> Default Gender-Aware Avatars
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Upload PNG images of brand assets or custom 3D emoji avatars. Brand new users registering on Ripple will automatically get assigned one of these customized default avatars based on their chosen gender category on the signup screen.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {(["male", "female", "nonbinary"] as const).map((genderOption) => {
+                    return (
+                      <GenderAvatarManager
+                        key={genderOption}
+                        gender={genderOption}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
   </div>
+  );
+};
+
+const GenderAvatarManager = ({ gender }: { gender: "male" | "female" | "nonbinary" }) => {
+  const [uploading, setUploading] = useState(false);
+  const [currentAvatars, setCurrentAvatars] = useState<string[]>([]);
+
+  const fetchAvatars = async () => {
+    try {
+      const res = await fetch("/api/admin/default-avatars");
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success && data?.configs?.[gender]) {
+          setCurrentAvatars(data.configs[gender]);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvatars();
+  }, [gender]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("gender", gender);
+
+    try {
+      const res = await fetch("/api/admin/default-avatars", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Failed to upload avatar");
+      }
+      toast.success(`Custom default avatar for ${gender} uploaded successfully!`);
+      const data = await res.json();
+      if (data?.configs?.[gender]) {
+        setCurrentAvatars(data.configs[gender]);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="bg-secondary/45 rounded-2xl p-5 border border-border/60 relative overflow-hidden flex flex-col justify-between">
+      <div>
+        <h3 className="font-display font-extrabold text-sm text-foreground capitalize tracking-wide">{gender} Avatars</h3>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Manage custom onboarding defaults</p>
+        
+        {/* Avatars List */}
+        <div className="flex flex-wrap gap-2 mt-4 min-h-[50px] items-center">
+          {currentAvatars.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground italic">No custom PNG default avatars uploaded. Using system 3D defaults.</p>
+          ) : (
+            currentAvatars.map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt=""
+                className="w-10 h-10 rounded-xl object-contain bg-background/50 border border-white/5 shadow-inner"
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="mt-5 shrink-0">
+        <label className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-primary/25 hover:border-primary/50 text-xs font-display font-bold text-primary hover:bg-primary/5 transition-all cursor-pointer">
+          {uploading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4" />
+          )}
+          {uploading ? "Uploading..." : "Upload PNG Avatar"}
+          <input
+            type="file"
+            accept="image/png"
+            className="hidden"
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+    </div>
   );
 };
 
