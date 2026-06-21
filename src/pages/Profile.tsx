@@ -7,6 +7,7 @@ import { useFollowCounts } from "@/hooks/useFollows";
 import { usePosts } from "@/hooks/usePosts";
 import { motion } from "framer-motion";
 import VerifiedBadge from "@/components/ripple/VerifiedBadge";
+import RichCaption from "@/components/ripple/RichCaption";
 
 const formatNumber = (n: number) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
@@ -71,10 +72,22 @@ const Profile = () => {
                 </div>
               ))}
             </div>
-            <p className="hidden lg:block text-sm text-secondary-foreground leading-relaxed">{profile?.bio || "No sea bio yet"}</p>
+            {profile?.bio ? (
+              <div className="hidden lg:block text-sm text-secondary-foreground leading-relaxed">
+                <RichCaption text={profile.bio} />
+              </div>
+            ) : (
+              <p className="hidden lg:block text-sm text-secondary-foreground leading-relaxed">No sea bio yet</p>
+            )}
           </div>
         </div>
-        <p className="lg:hidden text-sm text-secondary-foreground mt-3 leading-relaxed">{profile?.bio || "No sea bio yet"}</p>
+        {profile?.bio ? (
+          <div className="lg:hidden text-sm text-secondary-foreground mt-3 leading-relaxed">
+            <RichCaption text={profile.bio} />
+          </div>
+        ) : (
+          <p className="lg:hidden text-sm text-secondary-foreground mt-3 leading-relaxed">No sea bio yet</p>
+        )}
       </div>
 
       {/* Tabs */}

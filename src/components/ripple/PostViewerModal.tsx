@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { ChevronLeft, Eye, Flame, Share2, Send } from "lucide-react";
 import { useToggleLike, useToggleSave, type PostWithProfile } from "@/hooks/usePosts";
@@ -11,13 +12,16 @@ interface Props {
   onClose: () => void;
 }
 
-const formatCount = (n: number) => {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
-  if (n >= 1000) return (n / 1000).toFixed(1) + "k";
-  return n.toString();
+const formatCount = (n: any) => {
+  if (n === undefined || n === null || isNaN(Number(n))) return "0";
+  const num = Number(n);
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+  return num.toString();
 };
 
 const PostViewerModal = ({ post, onClose }: Props) => {
+  const navigate = useNavigate();
   const [commentText, setCommentText] = useState("");
   const [currentMediaIdx, setCurrentMediaIdx] = useState(0);
   const toggleLike = useToggleLike();
@@ -244,8 +248,14 @@ const PostViewerModal = ({ post, onClose }: Props) => {
         <div className="absolute bottom-4 left-4 right-20 z-20 p-4 rounded-2xl backdrop-blur-md bg-black/45 border border-white/10 shadow-elevated">
           {hashtags.length > 0 && (
             <div className="mb-2">
-              <span className="inline-block px-3 py-1 rounded-full bg-primary/95 text-primary-foreground text-[10px] font-display font-extrabold uppercase tracking-wider">
-                {hashtags[0].slice(1)}
+              <span 
+                className="inline-block px-3 py-1 rounded-full bg-primary/95 text-primary-foreground text-[10px] font-display font-extrabold uppercase tracking-wider cursor-pointer hover:bg-primary transition-colors"
+                onClick={() => {
+                  onClose();
+                  navigate(`/hashtag/${hashtags[0].slice(1)}`);
+                }}
+              >
+                #{hashtags[0].slice(1)}
               </span>
             </div>
           )}
@@ -264,22 +274,41 @@ const PostViewerModal = ({ post, onClose }: Props) => {
           {hashtags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {hashtags.map((tag, i) => (
-                <RichCaption
+                <span
                   key={i}
-                  text={tag}
-                  className="text-white/80 hover:text-white text-xs font-display font-bold cursor-pointer"
-                  hashtagClass="text-white/80 hover:text-white"
-                  mentionClass="text-white/80"
-                />
+                  className="text-white/80 hover:text-white text-xs font-display font-bold cursor-pointer transition-colors"
+                  onClick={() => {
+                    onClose();
+                    navigate(`/hashtag/${tag.slice(1)}`);
+                  }}
+                >
+                  {tag}
+                </span>
               ))}
             </div>
           )}
 
           <div className="flex items-center gap-2.5 pt-1.5 border-t border-white/10">
-            <div className="w-7 h-7 rounded-full overflow-hidden border border-white/20 flex-shrink-0">
+            <div 
+              className="w-7 h-7 rounded-full overflow-hidden border border-white/20 flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => {
+                if (profile?.username) {
+                  onClose();
+                  navigate(`/user/${profile.username}`);
+                }
+              }}
+            >
               <img src={profile?.avatar_url || ""} alt="" className="w-full h-full object-cover" />
             </div>
-            <span className="text-white/90 text-xs font-display font-bold truncate">
+            <span 
+              className="text-white/90 text-xs font-display font-bold truncate cursor-pointer hover:underline"
+              onClick={() => {
+                if (profile?.username) {
+                  onClose();
+                  navigate(`/user/${profile.username}`);
+                }
+              }}
+            >
               @{profile?.username || "user"}
             </span>
           </div>

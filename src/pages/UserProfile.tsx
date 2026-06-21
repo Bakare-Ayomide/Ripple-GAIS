@@ -5,6 +5,7 @@ import { usePosts, type PostWithProfile } from "@/hooks/usePosts";
 import { useFollowStatus, useToggleFollow, useFollowCounts } from "@/hooks/useFollows";
 import PostCard from "@/components/ripple/PostCard";
 import PostViewerModal from "@/components/ripple/PostViewerModal";
+import RichCaption from "@/components/ripple/RichCaption";
 import { ChevronLeft } from "lucide-react";
 import VerifiedBadge from "@/components/ripple/VerifiedBadge";
 import { useState } from "react";
@@ -68,7 +69,11 @@ const UserProfile = () => {
           <VerifiedBadge verified={(profile as any).is_verified} size={18} />
         </p>
         <p className="text-sm text-muted-foreground mb-3">@{profile.username}</p>
-        {profile.bio && <p className="text-sm text-foreground/70 mb-4 max-w-xs">{profile.bio}</p>}
+        {profile.bio && (
+          <div className="text-sm text-foreground/70 mb-4 max-w-xs">
+            <RichCaption text={profile.bio} />
+          </div>
+        )}
 
         <div className="flex gap-8 mb-4">
           <div className="text-center">

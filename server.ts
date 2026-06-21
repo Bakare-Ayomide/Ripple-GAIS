@@ -8,7 +8,7 @@ import { createServer as createViteServer } from 'vite';
 import * as ftp from 'basic-ftp';
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(process.cwd(), 'uploads');
+const uploadsDir = process.env.VERCEL === '1' ? '/tmp' : path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -529,6 +529,8 @@ async function initDb() {
           id VARCHAR(255) PRIMARY KEY,
           user_id VARCHAR(255) NOT NULL,
           image_url TEXT NOT NULL,
+          media_type VARCHAR(50) DEFAULT 'image',
+          thumbnail_url TEXT,
           caption TEXT,
           expires_at TIMESTAMP NOT NULL,
           views_count INT DEFAULT 0,
@@ -593,6 +595,16 @@ async function initDb() {
       }
       try {
         await verifiedConn.query('ALTER TABLE profiles ADD COLUMN is_onboarding_core BOOLEAN DEFAULT FALSE');
+      } catch (err: any) {
+        // column likely already exists
+      }
+      try {
+        await verifiedConn.query("ALTER TABLE stories ADD COLUMN media_type VARCHAR(50) DEFAULT 'image'");
+      } catch (err: any) {
+        // column likely already exists
+      }
+      try {
+        await verifiedConn.query("ALTER TABLE stories ADD COLUMN thumbnail_url TEXT");
       } catch (err: any) {
         // column likely already exists
       }
@@ -1105,8 +1117,10 @@ async function executeFallbackSync(table: string, actions: any[], res: any) {
   }
 }
 
+const app = express();
+export default app;
+
 async function startServer() {
-  const app = express();
   const PORT = 3000;
 
   // JSON and url-encoded body parsers
@@ -2262,9 +2276,11 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Full-Stack Server] Ready on http://0.0.0.0:${PORT}`);
-  });
+  if (process.env.VERCEL !== '1') {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Full-Stack Server] Ready on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
 startServer();

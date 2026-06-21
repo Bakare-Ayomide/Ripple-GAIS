@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { X, Send, UserPlus, ChevronDown } from "lucide-react";
+import { X, Send, UserPlus, ChevronDown, Volume2, VolumeX } from "lucide-react";
 
 import RichCaption from "./RichCaption";
 
 type Story = {
   id: string;
   image_url: string;
+  media_type?: string | null;
+  thumbnail_url?: string | null;
   created_at: string;
   views_count: number | null;
   caption?: string | null;
@@ -28,12 +31,14 @@ interface StoryViewerProps {
 const STORY_DURATION = 5000;
 
 const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) => {
+  const navigate = useNavigate();
   const [groupIdx, setGroupIdx] = useState(initialGroupIndex);
   const [storyIdx, setStoryIdx] = useState(0);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [dragY, setDragY] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const startTimeRef = useRef(Date.now());
 
@@ -137,23 +142,93 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
           onDragEnd={handleDragEnd}
           style={{ opacity: 1 - Math.abs(dragY) / 400 }}
         >
-          {/* Full-screen story image */}
+          {/* Full-screen story media */}
           <div
-            className="absolute inset-0 cursor-pointer"
+            className="absolute inset-0 cursor-pointer overflow-hidden flex items-center justify-center bg-zinc-950"
             onClick={handleTap}
             onMouseDown={() => setPaused(true)}
             onMouseUp={() => setPaused(false)}
             onTouchStart={() => setPaused(true)}
             onTouchEnd={() => setPaused(false)}
           >
-            <img
-              src={story.image_url}
-              alt=""
-              className="w-full h-full object-cover"
-              draggable={false}
-            />
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent" />
+            {(!story.media_type || story.media_type === "image") && (
+              <img
+                src={story.image_url}
+                alt=""
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+            )}
+
+            {story.media_type === "video" && (
+              <video
+                src={story.image_url}
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+                loop
+                muted={isMuted}
+                draggable={false}
+              />
+            )}
+
+            {story.media_type === "audio" && (
+              <div className="w-full h-full bg-gradient-to-br from-neutral-900 to-zinc-900 flex flex-col items-center justify-center p-6 gap-6 relative">
+                {/* Visualizer animation / rotating wave disk */}
+                <div className="relative flex items-center justify-center">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+                    className="w-40 h-40 rounded-full border-4 border-emerald-500/30 flex items-center justify-center bg-emerald-500/10 shadow-lg relative overflow-hidden"
+                  >
+                    <div className="absolute inset-2 rounded-full border border-white/10" />
+                    <div className="absolute inset-5 rounded-full border border-white/5" />
+                    <div className="absolute inset-8 rounded-full border border-white/10" />
+                    <div className="absolute inset-12 rounded-full border border-white/5" />
+                    <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center shadow-md">
+                      <svg className="w-5 h-5 text-white animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                      </svg>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* Wave animation */}
+                <div className="flex gap-1.5 items-end h-8">
+                  {[1, 2, 3, 4, 5, 4, 3, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1].map((h, i) => (
+                    <motion.div
+                      key={i}
+                      animate={{ height: ["4px", `${h * 4}px`, "4px"] }}
+                      transition={{ repeat: Infinity, duration: 1, delay: i * 0.05, ease: "easeInOut" }}
+                      className="w-1 bg-emerald-500 rounded-full"
+                    />
+                  ))}
+                </div>
+
+                <audio
+                  src={story.image_url}
+                  autoPlay
+                  playsInline
+                  loop
+                  muted={isMuted}
+                />
+              </div>
+            )}
+
+            {story.media_type === "text" && (
+              <div 
+                className={`w-full h-full bg-gradient-to-tr ${story.image_url || "from-purple-600 via-pink-600 to-blue-600"} flex flex-col items-center justify-center p-8 text-center select-none`}
+              >
+                <div className="max-w-xs break-words">
+                  <h3 className="text-white text-2xl sm:text-3xl font-display font-extrabold tracking-tight leading-snug drop-shadow-md">
+                    {story.caption}
+                  </h3>
+                </div>
+              </div>
+            )}
+
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
           </div>
 
           {/* Progress bars */}
@@ -173,10 +248,28 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
           {/* Header */}
           <div className="absolute top-7 left-0 right-0 z-10 flex items-center justify-between px-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/50 shadow-lg">
+              <div 
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/50 shadow-lg cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (profile?.username) {
+                    onClose();
+                    navigate(`/user/${profile.username}`);
+                  }
+                }}
+              >
                 <img src={profile?.avatar_url || ""} alt="" className="w-full h-full object-cover" />
               </div>
-              <div>
+              <div
+                className="cursor-pointer hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (profile?.username) {
+                    onClose();
+                    navigate(`/user/${profile.username}`);
+                  }
+                }}
+              >
                 <p className="text-white font-display font-extrabold text-sm leading-tight drop-shadow-lg">
                   {profile?.display_name || profile?.username || "User"}
                 </p>
@@ -184,6 +277,22 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {(story.media_type === "video" || story.media_type === "audio") && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMuted(!isMuted);
+                  }}
+                  className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors mr-1"
+                  title={isMuted ? "Unmute" : "Mute"}
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-4.5 h-4.5" />
+                  ) : (
+                    <Volume2 className="w-4.5 h-4.5" />
+                  )}
+                </button>
+              )}
               <button className="flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-accent text-accent-foreground text-[11px] font-display font-extrabold shadow-md">
                 <UserPlus className="w-3 h-3" />
                 Flow
@@ -191,6 +300,7 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
               <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
                 className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+                title="Close"
               >
                 <X className="w-6 h-6" strokeWidth={2.5} />
               </button>
@@ -214,8 +324,8 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
             </button>
           </div>
 
-          {/* Story caption with hashtags/mentions */}
-          {story.caption && (
+          {/* Story caption with hashtags/mentions (only for non-text stories) */}
+          {story.caption && story.media_type !== "text" && (
             <div className="absolute left-4 right-20 bottom-24 z-10">
               <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-4 py-2.5 inline-block max-w-full">
                 <RichCaption

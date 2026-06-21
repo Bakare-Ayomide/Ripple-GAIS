@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, MessageCircle, UserPlus, Send, Bell, CheckCheck, AtSign, Eye, Bookmark, Loader2, X } from "lucide-react";
@@ -19,6 +19,7 @@ const ICONS: Record<string, any> = {
 };
 
 const Notifications = () => {
+  const navigate = useNavigate();
   const { data: notifs, isLoading } = useNotifications();
   const markRead = useMarkNotificationsRead();
   const [viewingPostId, setViewingPostId] = useState<string | null>(null);
@@ -99,7 +100,12 @@ const Notifications = () => {
                   <img
                     src={n.actor?.avatar_url || ""}
                     alt=""
-                    className="w-11 h-11 rounded-xl bg-secondary object-cover"
+                    className="w-11 h-11 rounded-xl bg-secondary object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (n.actor?.username) navigate(`/user/${n.actor.username}`);
+                    }}
                   />
                   <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center ${meta.color}`}>
                     <Icon className="w-3 h-3" fill={n.type === "like" ? "currentColor" : "none"} />
@@ -107,7 +113,14 @@ const Notifications = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-foreground flex items-center flex-wrap gap-1">
-                    <span className="font-display font-bold inline-flex items-center gap-1">
+                    <span 
+                      className="font-display font-bold inline-flex items-center gap-1 cursor-pointer hover:underline"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (n.actor?.username) navigate(`/user/${n.actor.username}`);
+                      }}
+                    >
                       {n.actor?.username || "someone"}
                       {n.actor?.is_verified && <VerifiedBadge verified size={12} />}
                     </span>{" "}

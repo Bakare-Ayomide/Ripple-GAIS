@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Share2, MoreHorizontal, Flame, Send, Pencil, Pin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToggleLike, useToggleSave, type PostWithProfile } from "@/hooks/usePosts";
@@ -14,6 +15,7 @@ const formatNumber = (n: number) => {
 };
 
 const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; featured?: boolean; onOpen?: () => void }) => {
+  const navigate = useNavigate();
   const [showHeart, setShowHeart] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -52,13 +54,30 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-        <img src={profile?.avatar_url || ""} alt={profile?.username || ""} className="w-12 h-12 rounded-full object-cover bg-secondary border-2 border-background" />
+        <img
+          src={profile?.avatar_url || ""}
+          alt={profile?.username || ""}
+          className="w-12 h-12 rounded-full object-cover bg-secondary border-2 border-background cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => {
+            if (profile?.username) navigate(`/user/${profile.username}`);
+          }}
+        />
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-display font-extrabold truncate flex items-center gap-1 ${featured ? "text-primary-foreground" : "text-foreground"}`}>
+          <p
+            className={`text-sm font-display font-extrabold truncate flex items-center gap-1 cursor-pointer hover:underline ${featured ? "text-primary-foreground" : "text-foreground"}`}
+            onClick={() => {
+              if (profile?.username) navigate(`/user/${profile.username}`);
+            }}
+          >
             {profile?.display_name || profile?.username || "User"}
             <VerifiedBadge verified={(profile as any)?.is_verified} size={14} />
           </p>
-          <p className={`text-xs font-medium ${featured ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+          <p
+            className={`text-xs font-medium cursor-pointer hover:underline ${featured ? "text-primary-foreground/60" : "text-muted-foreground"}`}
+            onClick={() => {
+              if (profile?.username) navigate(`/user/${profile.username}`);
+            }}
+          >
             @{profile?.username || "user"}
           </p>
         </div>
@@ -183,10 +202,23 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="mx-4 pt-3 border-t border-border/30 space-y-3 max-h-48 overflow-y-auto">
               {comments?.map((c: any) => (
-                <div key={c.id} className="flex gap-2">
-                  <img src={c.profiles?.avatar_url || ""} className="w-7 h-7 rounded-full bg-secondary flex-shrink-0" />
+                <div key={c.id} className="flex gap-2 items-start">
+                  <img
+                    src={c.profiles?.avatar_url || ""}
+                    className="w-7 h-7 rounded-full bg-secondary flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => {
+                      if (c.profiles?.username) navigate(`/user/${c.profiles.username}`);
+                    }}
+                  />
                   <div>
-                    <span className={`text-xs font-display font-bold ${featured ? "text-primary-foreground" : "text-foreground"}`}>{c.profiles?.username} </span>
+                    <span
+                      className={`text-xs font-display font-bold cursor-pointer hover:underline inline-block mr-1.5 ${featured ? "text-primary-foreground" : "text-foreground"}`}
+                      onClick={() => {
+                        if (c.profiles?.username) navigate(`/user/${c.profiles.username}`);
+                      }}
+                    >
+                      {c.profiles?.username}
+                    </span>
                     <span className={`text-xs ${featured ? "text-primary-foreground/70" : "text-secondary-foreground"}`}>{c.content}</span>
                   </div>
                 </div>

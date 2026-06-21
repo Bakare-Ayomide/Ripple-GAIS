@@ -1,4 +1,4 @@
-import { Bell, Plus } from "lucide-react";
+import { Bell, Plus, Music } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStories } from "@/hooks/useStories";
 import { useProfile } from "@/hooks/useProfile";
@@ -8,24 +8,81 @@ import { useUnreadNotificationsCount } from "@/hooks/useNotifications";
 import StoryViewer from "./StoryViewer";
 import StoryComposer from "./StoryComposer";
 
-const StoryCircle = ({ avatar, username, hasStory, isOwn, onClick }: { avatar: string; username: string; hasStory?: boolean; isOwn?: boolean; onClick?: () => void }) => (
-  <motion.button
+const StoryCircle = ({
+  avatar,
+  username,
+  hasStory,
+  isOwn,
+  story,
+  onClick,
+  onAddClick,
+}: {
+  avatar: string;
+  username: string;
+  hasStory?: boolean;
+  isOwn?: boolean;
+  story?: any;
+  onClick?: () => void;
+  onAddClick?: () => void;
+}) => (
+  <motion.div
     whileTap={{ scale: 0.92 }}
     onClick={onClick}
-    className="relative flex-shrink-0 group"
+    className="relative flex-shrink-0 group cursor-pointer"
     title={username}
+    role="button"
+    tabIndex={0}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick?.();
+      }
+    }}
   >
     <div className={`w-14 h-14 lg:w-12 lg:h-12 rounded-full p-[2.5px] ${hasStory ? "bg-gradient-to-br from-primary to-accent" : isOwn ? "gradient-brand" : "bg-border"}`}>
-      <div className="w-full h-full rounded-full bg-background p-[2px]">
-        <img src={avatar || ""} alt={username} className="w-full h-full rounded-full object-cover bg-secondary" />
+      <div className="w-full h-full rounded-full bg-background p-[2px] overflow-hidden flex items-center justify-center">
+        {story ? (
+          story.media_type === "text" ? (
+            <div className={`w-full h-full rounded-full bg-gradient-to-tr ${story.image_url || "from-purple-600 via-pink-600 to-blue-600"} flex items-center justify-center text-[10px] text-white font-extrabold shadow-sm`}>
+              Aa
+            </div>
+          ) : story.media_type === "video" ? (
+            <div className="w-full h-full rounded-full overflow-hidden relative">
+              <video src={story.image_url} className="w-full h-full rounded-full object-cover" muted playsInline autoPlay loop />
+              <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                <div className="w-3.5 h-3.5 rounded-full bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                  <svg className="w-1.5 h-1.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" stroke="none" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          ) : story.media_type === "audio" ? (
+            <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white relative">
+              <Music className="w-4 h-4 text-white" />
+              <div className="absolute inset-0 bg-black/10 flex items-center justify-center" />
+            </div>
+          ) : (
+            <img src={story.thumbnail_url || story.image_url || avatar || ""} alt={username} className="w-full h-full rounded-full object-cover bg-secondary" />
+          )
+        ) : (
+          <img src={avatar || ""} alt={username} className="w-full h-full rounded-full object-cover bg-secondary" />
+        )}
       </div>
     </div>
     {isOwn && (
-      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full gradient-brand flex items-center justify-center border-2 border-background">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onAddClick?.();
+        }}
+        className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full gradient-brand flex items-center justify-center border-2 border-background cursor-pointer"
+        title="Add/Post wave"
+      >
         <Plus className="w-3 h-3 text-primary-foreground" strokeWidth={3} />
-      </div>
+      </button>
     )}
-  </motion.button>
+  </motion.div>
 );
 
 const StoriesBar = () => {
@@ -64,23 +121,45 @@ const StoriesBar = () => {
         </Link>
 
         {/* Own story */}
-        <StoryCircle
-          avatar={profile?.avatar_url || ""}
-          username="Your wave"
-          isOwn
-          onClick={() => setComposerOpen(true)}
-        />
+        {(() => {
+          const ownGroupIndex = storyGroups?.findIndex((g: any) => g.user_id === profile?.user_id) ?? -1;
+          const ownGroup = ownGroupIndex !== -1 ? storyGroups?.[ownGroupIndex] : null;
+          const ownLatestStory = ownGroup?.stories?.[0];
+          return (
+            <StoryCircle
+              avatar={profile?.avatar_url || ""}
+              username="Your wave"
+              isOwn
+              story={ownLatestStory}
+              onClick={() => {
+                if (ownGroupIndex !== -1) {
+                  openViewer(ownGroupIndex);
+                } else {
+                  setComposerOpen(true);
+                }
+              }}
+              onAddClick={() => setComposerOpen(true)}
+            />
+          );
+        })()}
 
         {/* Other stories */}
-        {storyGroups?.map((group: any, i: number) => (
-          <StoryCircle
-            key={group.user_id}
-            avatar={group.profile?.avatar_url || ""}
-            username={group.profile?.username || "user"}
-            hasStory
-            onClick={() => openViewer(i)}
-          />
-        ))}
+        {storyGroups
+          ?.filter((group: any) => group.user_id !== profile?.user_id)
+          ?.map((group: any) => {
+            const realIdx = storyGroups.findIndex((g: any) => g.user_id === group.user_id);
+            const latestStory = group.stories?.[0];
+            return (
+              <StoryCircle
+                key={group.user_id}
+                avatar={group.profile?.avatar_url || ""}
+                username={group.profile?.username || "user"}
+                hasStory
+                story={latestStory}
+                onClick={() => openViewer(realIdx)}
+              />
+            );
+          })}
 
         {/* Placeholder circles if no stories */}
         {(!storyGroups || storyGroups.length === 0) && (

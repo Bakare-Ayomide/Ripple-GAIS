@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Flame, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import type { PostWithProfile } from "@/hooks/usePosts";
@@ -9,6 +10,7 @@ interface Props {
 }
 
 const FeaturedCarousel = ({ posts, onPostClick }: Props) => {
+  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (dir: "left" | "right") => {
@@ -52,8 +54,21 @@ const FeaturedCarousel = ({ posts, onPostClick }: Props) => {
             )}
             <div className="p-3">
               <div className="flex items-center gap-2 mb-1.5">
-                <img src={post.profiles?.avatar_url || ""} className="w-6 h-6 rounded-full bg-secondary" />
-                <p className="text-xs font-display font-bold text-foreground truncate flex-1">
+                <img
+                  src={post.profiles?.avatar_url || ""}
+                  className="w-6 h-6 rounded-full bg-secondary cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (post.profiles?.username) navigate(`/user/${post.profiles.username}`);
+                  }}
+                />
+                <p 
+                  className="text-xs font-display font-bold text-foreground truncate flex-1 cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (post.profiles?.username) navigate(`/user/${post.profiles.username}`);
+                  }}
+                >
                   {post.profiles?.username || "user"}
                 </p>
               </div>

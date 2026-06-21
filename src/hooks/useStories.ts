@@ -65,40 +65,59 @@ export const useCreateStory = () => {
 
   return useMutation({
     mutationFn: async ({
-      imageFile,
+      mediaFile,
+      mediaType = "image",
+      thumbnailUrl,
       caption,
       expiresInHours = 24,
       onProgress,
     }: {
-      imageFile: File;
+      mediaFile?: File | null;
+      mediaType?: string;
+      thumbnailUrl?: string;
       caption?: string;
       expiresInHours?: number;
       onProgress?: (pct: number) => void;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
-      const ext = imageFile.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
+      let finalUrl = "";
+      let finalThumb = thumbnailUrl || "";
 
-      // Simulated progress (Supabase JS doesn't expose native upload progress)
-      onProgress?.(5);
-      const progressTimer = setInterval(() => {
-        onProgress?.(Math.min(90, Math.random() * 15 + 30));
-      }, 200);
+      if (mediaFile) {
+        const ext = mediaFile.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
 
-      const { error: uploadError } = await supabase.storage.from("stories").upload(path, imageFile);
-      clearInterval(progressTimer);
-      if (uploadError) throw uploadError;
-      onProgress?.(95);
+        onProgress?.(5);
+        const progressTimer = setInterval(() => {
+          onProgress?.(Math.min(90, Math.random() * 15 + 30));
+        }, 200);
 
-      const { data: { publicUrl } } = supabase.storage.from("stories").getPublicUrl(path);
+        const { error: uploadError } = await supabase.storage.from("stories").upload(path, mediaFile);
+        clearInterval(progressTimer);
+        if (uploadError) throw uploadError;
+        onProgress?.(95);
+
+        const { data: { publicUrl } } = supabase.storage.from("stories").getPublicUrl(path);
+        finalUrl = publicUrl;
+
+        if (!finalThumb) {
+          finalThumb = publicUrl;
+        }
+      } else {
+        // Text stories have no file, store background style in image_url
+        // For text stories, image_url acts as the background gradient identifier
+        finalUrl = thumbnailUrl || "from-purple-600 via-pink-600 to-blue-600";
+      }
 
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + expiresInHours);
 
       const { error } = await (supabase.from("stories").insert({
         user_id: user.id,
-        image_url: publicUrl,
+        image_url: finalUrl,
+        media_type: mediaType,
+        thumbnail_url: finalThumb || null,
         caption: caption || null,
         expires_at: expiresAt.toISOString(),
       } as any));
