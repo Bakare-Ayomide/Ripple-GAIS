@@ -19,13 +19,12 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # Use Node 20 LTS (safe for Capacitor 7)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Install dependencies (FIXED)
+      - name: Install dependencies
         run: npm install
 
       - name: Build Web App
@@ -34,11 +33,11 @@ jobs:
           VITE_SUPABASE_URL: "https://mock-supabase.ripple.com"
           VITE_SUPABASE_ANON_KEY: "mock-anon-key"
 
-      - name: Install Capacitor 7 (Java 17 safe)
+      - name: Install Capacitor (stable v7)
         run: |
           npm install @capacitor/core@7.4.3 @capacitor/cli@7.4.3 @capacitor/android@7.4.3
 
-      - name: Init Capacitor (safe)
+      - name: Init Capacitor
         run: |
           if [ ! -f capacitor.config.ts ] && [ ! -f capacitor.config.json ]; then
             npx cap init Ripple com.ripple.app --web-dir=dist
@@ -53,6 +52,13 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # 🔥 THIS IS THE FIX THAT ACTUALLY SOLVES YOUR ERROR
+      - name: Force Java 17 in Gradle (IMPORTANT)
+        run: |
+          find android -type f -name "*.gradle" -exec sed -i 's/VERSION_21/VERSION_17/g' {} \;
+          find android -type f -name "*.gradle" -exec sed -i 's/sourceCompatibility *= *21/sourceCompatibility = 17/g' {} \;
+          find android -type f -name "*.gradle" -exec sed -i 's/targetCompatibility *= *21/targetCompatibility = 17/g' {} \;
+
       - name: Verify Java
         run: |
           java -version
@@ -62,7 +68,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK
         run: |
