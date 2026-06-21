@@ -2,9 +2,7 @@ name: Build Native Android App (ripple.apk)
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: ["main", "master"]
   workflow_dispatch:
 
 jobs:
@@ -15,72 +13,77 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 🔥 FORCE JAVA 17 (Capacitor Android stable)
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
+      # Node (safe LTS, NOT 22 — avoids tooling conflicts)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
-      - name: Verify Java
-        run: |
-          java -version
-          javac -version
+      - name: Install dependencies
+        run: npm ci || npm install
 
-      - name: Install Dependencies
-        run: npm install
-
+      # Build frontend (Vite output → dist)
       - name: Build Web App
         run: npm run build
         env:
           VITE_SUPABASE_URL: "https://mock-supabase.ripple.com"
           VITE_SUPABASE_ANON_KEY: "mock-anon-key"
 
-      - name: Install Capacitor 7
+      # 🔥 FORCE STABLE CAPACITOR VERSION (CRITICAL FIX)
+      - name: Install Capacitor 7 (Java 17 compatible)
         run: |
-          npm install \
-            @capacitor/core@7.4.3 \
-            @capacitor/cli@7.4.3 \
-            @capacitor/android@7.4.3
+          npm install @capacitor/core@7.4.3 @capacitor/cli@7.4.3 @capacitor/android@7.4.3
 
-      - name: Create Capacitor Config
+      # Initialize ONLY if missing (prevents CI rebuild corruption)
+      - name: Init Capacitor (safe)
         run: |
           if [ ! -f capacitor.config.ts ] && [ ! -f capacitor.config.json ]; then
             npx cap init Ripple com.ripple.app --web-dir=dist
           fi
 
+      # Add Android only if missing
       - name: Add Android Platform
         run: |
           if [ ! -d android ]; then
             npx cap add android
           fi
 
-      - name: Force Java 17 Compatibility
-        run: |
-          sed -i 's/VERSION_21/VERSION_17/g' android/**/*.gradle || true
-          sed -i 's/sourceCompatibility *= *21/sourceCompatibility = 17/g' android/**/*.gradle || true
-          sed -i 's/targetCompatibility *= *21/targetCompatibility = 17/g' android/**/*.gradle || true
-
+      # Sync web → native
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build APK
+      # Debug Java version (important for CI stability)
+      - name: Verify Java Environment
+        run: |
+          java -version
+          javac -version
+
+      # Build APK
+      - name: Build Android APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
-      - name: Prepare APK
+      # Rename APK
+      - name: Prepare ripple.apk
         run: |
           mkdir -p build-artifacts
           cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/ripple.apk
 
+      # Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Ripple-Android-APK
+          name: ripple-apk
           path: build-artifacts/ripple.apk
+          if-no-files-found: error
+          retention-days: 14
