@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { localSqlite } from "@/lib/sqliteLocal";
 
 export interface PostWithProfile {
   id: string;
@@ -27,29 +28,59 @@ export const usePosts = () => {
   return useQuery({
     queryKey: ["posts"],
     queryFn: async () => {
-      const { data: posts, error } = await supabase
-        .from("posts")
-        .select("*, profiles!posts_user_id_profiles_fkey(username, display_name, avatar_url, is_verified)")
-        .order("created_at", { ascending: false }) as any;
-      if (error) throw error;
+      let cachedPosts: PostWithProfile[] = [];
+      try {
+        cachedPosts = await localSqlite.getPosts();
+      } catch (e) {
+        console.warn("[LocalSQLite] Failed to load offline posts:", e);
+      }
 
-      if (!user || !posts?.length) return (posts || []) as PostWithProfile[];
+      try {
+        const { data: posts, error } = await supabase
+          .from("posts")
+          .select("*, profiles!posts_user_id_profiles_fkey(username, display_name, avatar_url, is_verified)")
+          .order("created_at", { ascending: false }) as any;
+        if (error) throw error;
 
-      const postIds = posts.map((p: any) => p.id);
-      const [{ data: likes }, { data: saved }] = await Promise.all([
-        supabase.from("likes").select("post_id").eq("user_id", user.id).in("post_id", postIds),
-        supabase.from("saved_posts").select("post_id").eq("user_id", user.id).in("post_id", postIds),
-      ]);
+        let finalPosts: PostWithProfile[] = [];
 
-      const likedSet = new Set(likes?.map((l: any) => l.post_id) || []);
-      const savedSet = new Set(saved?.map((s: any) => s.post_id) || []);
+        if (!user || !posts?.length) {
+          finalPosts = (posts || []) as PostWithProfile[];
+        } else {
+          const postIds = posts.map((p: any) => p.id);
+          const [{ data: likes }, { data: saved }] = await Promise.all([
+            supabase.from("likes").select("post_id").eq("user_id", user.id).in("post_id", postIds),
+            supabase.from("saved_posts").select("post_id").eq("user_id", user.id).in("post_id", postIds),
+          ]);
 
-      return posts.map((p: any) => ({
-        ...p,
-        is_liked: likedSet.has(p.id),
-        is_saved: savedSet.has(p.id),
-      })) as PostWithProfile[];
+          const likedSet = new Set(likes?.map((l: any) => l.post_id) || []);
+          const savedSet = new Set(saved?.map((s: any) => s.post_id) || []);
+
+          finalPosts = posts.map((p: any) => ({
+            ...p,
+            is_liked: likedSet.has(p.id),
+            is_saved: savedSet.has(p.id),
+          })) as PostWithProfile[];
+        }
+
+        // Cash fresh results immediately into SQLite-emulated IndexedDB on client device
+        if (finalPosts.length > 0) {
+          localSqlite.savePosts(finalPosts).catch((err) => {
+            console.warn("[LocalSQLite] Async cache save failed:", err);
+          });
+        }
+
+        return finalPosts;
+      } catch (err) {
+        console.warn("[LocalSQLite] Network down, serving local items", err);
+        if (cachedPosts && cachedPosts.length > 0) {
+          return cachedPosts;
+        }
+        throw err;
+      }
     },
+    // Seamless performance: load from local cache instantly on first hit while refetching is done in background
+    placeholderData: [] as PostWithProfile[],
   });
 };
 

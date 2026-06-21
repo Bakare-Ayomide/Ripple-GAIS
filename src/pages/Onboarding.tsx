@@ -223,7 +223,7 @@ const Onboarding = () => {
         if (!shoreUsername || shoreUsername.length < 3) {
           throw new Error("Username must be at least 3 digits/characters");
         }
-        const { error } = await signUp(email, password, shoreUsername);
+        const { error } = await signUp(email, password, shoreUsername, "nonbinary");
         if (error) throw error;
         toast.success("Vessel claimed! Lets choose interests.");
         setStage("step1_interests");

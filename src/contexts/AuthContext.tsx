@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, username: string) => {
+  const signUp = async (email: string, password: string, username: string, gender: string) => {
     try {
       const normalizedUsername = username.toLowerCase().trim();
       const { data: existingProfile, error: checkError } = await supabase
@@ -50,15 +50,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error(`The username '${username}' is already taken. Please choose a different one.`) };
       }
 
-      const { error } = await supabase.auth.signUp({
+      const MALE_AVATARS = [
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Liam&backgroundType=gradientLinear&backgroundRotation=120&backgroundColor=0d9488,0ea5e9",
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Oliver&backgroundType=gradientLinear&backgroundRotation=180&backgroundColor=0284c7,f43f5e",
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Jack&backgroundType=gradientLinear&backgroundRotation=45&backgroundColor=10b981,0d5c56"
+      ];
+      const FEMALE_AVATARS = [
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Sasha&backgroundType=gradientLinear&backgroundRotation=120&backgroundColor=ec4899,8b5cf6",
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Ruby&backgroundType=gradientLinear&backgroundRotation=60&backgroundColor=f43f5e,eab308",
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Zoe&backgroundType=gradientLinear&backgroundRotation=240&backgroundColor=a855f7,3b82f6"
+      ];
+      const NONBINARY_AVATARS = [
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Alex&backgroundType=gradientLinear&backgroundRotation=120&backgroundColor=6366f1,e0f2fe",
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Kai&backgroundType=gradientLinear&backgroundRotation=90&backgroundColor=22c55e,facc15",
+        "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Robin&backgroundType=gradientLinear&backgroundRotation=150&backgroundColor=f97316,e11d48"
+      ];
+
+      const list = gender === "male" ? MALE_AVATARS : gender === "female" ? FEMALE_AVATARS : NONBINARY_AVATARS;
+      const defaultAvatar = list[Math.floor(Math.random() * list.length)];
+
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { username, display_name: username, needs_onboarding: true },
+          data: { username, display_name: username, needs_onboarding: true, gender, avatar_url: defaultAvatar },
           emailRedirectTo: window.location.origin,
         },
       });
-      return { error: error as Error | null };
+
+      if (error) return { error: error as Error };
+
+      // Immediately backfill/update profiles table with the chosen gender-aware default 3D avatar
+      if (data?.user) {
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            avatar_url: defaultAvatar
+          })
+          .eq("user_id", data.user.id);
+        if (updateError) {
+          console.warn("[signUp] Prompt override default avatar update failed:", updateError.message);
+        }
+      }
+
+      return { error: null };
     } catch (err: any) {
       return { error: err as Error };
     }

@@ -14,6 +14,7 @@ const StoryCircle = ({
   hasStory,
   isOwn,
   story,
+  itemCount,
   onClick,
   onAddClick,
 }: {
@@ -22,6 +23,7 @@ const StoryCircle = ({
   hasStory?: boolean;
   isOwn?: boolean;
   story?: any;
+  itemCount?: number;
   onClick?: () => void;
   onAddClick?: () => void;
 }) => (
@@ -39,8 +41,8 @@ const StoryCircle = ({
       }
     }}
   >
-    <div className={`w-14 h-14 lg:w-12 lg:h-12 rounded-full p-[2.5px] ${hasStory ? "bg-gradient-to-br from-primary to-accent" : isOwn ? "gradient-brand" : "bg-border"}`}>
-      <div className="w-full h-full rounded-full bg-background p-[2px] overflow-hidden flex items-center justify-center">
+    <div className={`w-14 h-14 lg:w-11 lg:h-11 rounded-full p-[1.5px] ${hasStory ? "bg-gradient-to-br from-[#10B981] to-[#0D5C56]" : isOwn ? "gradient-brand" : "bg-border/30"}`}>
+      <div className="w-full h-full rounded-full bg-[#000] p-[1.2px] overflow-hidden flex items-center justify-center">
         {story ? (
           story.media_type === "text" ? (
             <div className={`w-full h-full rounded-full bg-gradient-to-tr ${story.image_url || "from-purple-600 via-pink-600 to-blue-600"} flex items-center justify-center text-[10px] text-white font-extrabold shadow-sm`}>
@@ -70,16 +72,21 @@ const StoryCircle = ({
         )}
       </div>
     </div>
+    {itemCount && itemCount > 0 ? (
+      <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full bg-[#10b981] text-[8.5px] font-extrabold text-[#000] flex items-center justify-center z-10 border border-[#000] shadow-sm">
+        {itemCount}
+      </span>
+    ) : null}
     {isOwn && (
       <button
         onClick={(e) => {
           e.stopPropagation();
           onAddClick?.();
         }}
-        className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full gradient-brand flex items-center justify-center border-2 border-background cursor-pointer"
+        className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 rounded-full gradient-brand flex items-center justify-center border-2 border-background cursor-pointer"
         title="Add/Post wave"
       >
-        <Plus className="w-3 h-3 text-primary-foreground" strokeWidth={3} />
+        <Plus className="w-2.5 h-2.5 text-primary-foreground" strokeWidth={3} />
       </button>
     )}
   </motion.div>
@@ -131,6 +138,7 @@ const StoriesBar = () => {
               username="Your wave"
               isOwn
               story={ownLatestStory}
+              itemCount={ownGroup?.stories?.length || 0}
               onClick={() => {
                 if (ownGroupIndex !== -1) {
                   openViewer(ownGroupIndex);
@@ -156,6 +164,7 @@ const StoriesBar = () => {
                 username={group.profile?.username || "user"}
                 hasStory
                 story={latestStory}
+                itemCount={group.stories?.length || 0}
                 onClick={() => openViewer(realIdx)}
               />
             );

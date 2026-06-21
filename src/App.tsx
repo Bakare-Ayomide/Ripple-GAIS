@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -20,11 +21,26 @@ import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
+const BackgroundManager = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname === "/onboarding") {
+      document.body.classList.add("onboarding-bg");
+    } else {
+      document.body.classList.remove("onboarding-bg");
+    }
+  }, [location.pathname]);
+
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Sonner />
       <BrowserRouter>
+        <BackgroundManager />
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />

@@ -13,6 +13,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "nonbinary">("male");
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,7 +45,7 @@ const Auth = () => {
       } else if (mode === "signup") {
         if (username.length < 3) { toast.error("Username must be at least 3 characters"); setSubmitting(false); return; }
         if (password.length < 6) { toast.error("Password must be at least 6 characters"); setSubmitting(false); return; }
-        const { error } = await signUp(email, password, username);
+        const { error } = await signUp(email, password, username, gender);
         if (error) throw error;
         toast.success("Welcome to Ripple! 🌊");
       } else {
@@ -102,15 +103,36 @@ const Auth = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {mode === "signup" && (
-                  <input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                    className="w-full h-12 px-4 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground font-medium outline-none focus:ring-2 focus:ring-primary transition-shadow"
-                    required
-                    maxLength={20}
-                  />
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                      className="w-full h-12 px-4 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground font-medium outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                      required
+                      maxLength={20}
+                    />
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Align Gender Identity *</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(["male", "female", "nonbinary"] as const).map((g) => (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => setGender(g)}
+                            className={`h-10 rounded-xl font-display font-bold text-xs select-none transition-all border
+                              ${gender === g
+                                ? "gradient-brand text-primary-foreground border-transparent shadow shadow-primary/20"
+                                : "bg-secondary text-foreground/85 border-border/40 hover:bg-muted"}`}
+                          >
+                            {g === "nonbinary" ? "Non-Binary" : g.charAt(0).toUpperCase() + g.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
                 <input
                   type="email"

@@ -60,8 +60,8 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
     <article
       className={`rounded-3xl overflow-hidden mb-4 border transition-all relative z-0 ${
         featured
-          ? "backdrop-blur-xl bg-primary/85 border-primary/40 shadow-glow"
-          : "backdrop-blur-xl bg-card/65 border-white/10 shadow-card"
+          ? "backdrop-blur-xl bg-[#064e3b]/85 border-[#10b981]/40 shadow-[0_0_20px_rgba(16,185,129,0.35)]"
+          : "backdrop-blur-xl bg-[#042f2c]/60 border-[#0d5c56]/25 shadow-lg shadow-[#021c1a]/30"
       }`}
     >
       {/* Header */}

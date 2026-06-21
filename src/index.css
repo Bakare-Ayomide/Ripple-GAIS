@@ -69,6 +69,10 @@
   }
   body {
     font-family: var(--font-body);
+    background-color: #000000;
+    color: hsl(var(--foreground));
+  }
+  body.onboarding-bg {
     background-image: 
       linear-gradient(to bottom, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.35)),
       url('https://ripple.zerolord.com/brands/bg1.png');
@@ -76,7 +80,6 @@
     background-position: center;
     background-attachment: fixed;
     background-repeat: no-repeat;
-    color: hsl(var(--foreground));
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
