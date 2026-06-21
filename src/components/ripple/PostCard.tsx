@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Share2, MoreHorizontal, Flame, Send, Pencil, Pin } from "lucide-react";
+import { Share2, MoreHorizontal, Flame, Send, Pencil, Pin, VolumeX, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToggleLike, useToggleSave, type PostWithProfile } from "@/hooks/usePosts";
 import { useComments, useAddComment } from "@/hooks/useComments";
@@ -24,6 +24,7 @@ const CachedImage = ({ src, className, alt = "" }: { src: string; className?: st
 
 const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; featured?: boolean; onOpen?: () => void }) => {
   const navigate = useNavigate();
+  const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -180,7 +181,30 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
             const url = leadMediaUrl || mediaUrls[0];
             const isVid = post.media_type === "video" || /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
             const isAud = post.media_type === "audio" || /\.(mp3|wav|m4a|aac|flac)(\?|$)/i.test(url);
-            if (isVid) return <video src={url} className="w-full aspect-[4/5] object-cover" autoPlay loop muted playsInline />;
+             if (isVid) return (
+              <div className="relative w-full aspect-[4/5]">
+                <video
+                  src={url}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  loop
+                  muted={isMuted}
+                  playsInline
+                />
+                
+                <button
+                  id={`btn-unmute-post-${post.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMuted(!isMuted);
+                  }}
+                  className="absolute bottom-3 left-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/80 transition-all z-15 border border-white/10"
+                  title={isMuted ? "Unmute sound" : "Mute sound"}
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+                </button>
+              </div>
+            );
             if (isAud) return (
               <div className="w-full aspect-[4/5] bg-gradient-to-br from-accent/30 to-primary/30 flex flex-col items-center justify-center gap-4 p-6">
                 <div className="w-24 h-24 rounded-full gradient-brand flex items-center justify-center shadow-glow">

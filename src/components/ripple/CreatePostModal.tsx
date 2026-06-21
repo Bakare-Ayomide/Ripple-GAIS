@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { X, Image, Loader2, Video, Mic, Hash, AtSign, Plus } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { X, Image, Loader2, Video, Mic, Hash, AtSign, Plus, Circle, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCreatePost } from "@/hooks/usePosts";
 import { useSuggestedUsers } from "@/hooks/useFollows";
@@ -37,6 +37,83 @@ const CreatePostModal = ({ open, onClose }: Props) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const createPost = useCreatePost();
+
+  const [isRecordingMode, setIsRecordingMode] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const audioFile = new File([audioBlob], `voice-recording-${Date.now()}.webm`, { type: "audio/webm" });
+        const previewUrl = URL.createObjectURL(audioFile);
+        
+        setMediaFiles((prev) => [...prev, { file: audioFile, preview: previewUrl, type: "audio" }].slice(0, 10));
+        setIsRecordingMode(false);
+
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      
+      timerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      toast.error("Microphone permission denied or not supported");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.onstop = null;
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {}
+      const stream = mediaRecorderRef.current.stream;
+      if (stream) stream.getTracks().forEach((track) => track.stop());
+    }
+    setIsRecording(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsRecordingMode(false);
+  };
 
   // Fetch users for @ mentions
   const { data: mentionUsers } = useQuery({
@@ -195,50 +272,110 @@ const CreatePostModal = ({ open, onClose }: Props) => {
 
             {/* Media previews */}
             <div className="p-5 pb-0">
-              {mediaFiles.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-3 hide-scrollbar mb-3">
-                  {mediaFiles.map((m, i) => (
-                    <div key={i} className="relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border border-border">
-                      {m.type === "image" && <img src={m.preview} alt="" className="w-full h-full object-cover" />}
-                      {m.type === "video" && (
-                        <div className="w-full h-full bg-secondary flex items-center justify-center">
-                          <Video className="w-8 h-8 text-primary" />
-                          <video src={m.preview} className="absolute inset-0 w-full h-full object-cover opacity-60" />
+              {isRecordingMode ? (
+                <div id="live-voice-recorder-panel" className="w-full rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-5 flex flex-col items-center justify-center gap-4 mb-4 relative overflow-hidden backdrop-blur-md">
+                  <div className="absolute top-0.5 inset-x-2 h-[20%] rounded-b-full bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+                  
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${isRecording ? "bg-red-500 animate-pulse" : "bg-muted-foreground"}`} />
+                    <p className="text-xs font-mono font-bold text-foreground">
+                      {isRecording ? `Recording Audio Waves: ${formatTime(recordingDuration)}` : "Voice Recorder Ready"}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {!isRecording ? (
+                      <button
+                        id="btn-voice-record-start"
+                        onClick={startRecording}
+                        type="button"
+                        className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all shadow-md animate-pulse"
+                        title="Start Recording"
+                      >
+                        <Circle className="w-6 h-6 fill-current" />
+                      </button>
+                    ) : (
+                      <button
+                        id="btn-voice-record-stop"
+                        onClick={stopRecording}
+                        type="button"
+                        className="w-12 h-12 rounded-full bg-foreground hover:bg-foreground/80 flex items-center justify-center text-background transition-all shadow-md"
+                        title="Stop and Save"
+                      >
+                        <Square className="w-5 h-5 fill-current" />
+                      </button>
+                    )}
+
+                    <button
+                      id="btn-voice-record-cancel"
+                      onClick={cancelRecording}
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground font-semibold px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {mediaFiles.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-3 hide-scrollbar mb-3">
+                      {mediaFiles.map((m, i) => (
+                        <div key={i} className="relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border border-border">
+                          {m.type === "image" && <img src={m.preview} alt="" className="w-full h-full object-cover" />}
+                          {m.type === "video" && (
+                            <div className="w-full h-full bg-secondary flex items-center justify-center">
+                              <Video className="w-8 h-8 text-primary" />
+                              <video src={m.preview} className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                            </div>
+                          )}
+                          {m.type === "audio" && (
+                            <div className="w-full h-full bg-secondary flex items-center justify-center">
+                              <Mic className="w-8 h-8 text-accent" />
+                            </div>
+                          )}
+                          <button onClick={() => removeMedia(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
+                      ))}
+                      {mediaFiles.length < 10 && (
+                        <button onClick={() => fileRef.current?.click()} className="flex-shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-border flex items-center justify-center hover:border-primary/50 transition-colors">
+                          <Plus className="w-6 h-6 text-muted-foreground" />
+                        </button>
                       )}
-                      {m.type === "audio" && (
-                        <div className="w-full h-full bg-secondary flex items-center justify-center">
-                          <Mic className="w-8 h-8 text-accent" />
+                    </div>
+                  )}
+
+                  {mediaFiles.length === 0 && (
+                    <div className="space-y-3 mb-4">
+                      <button onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 hover:border-primary/50 bg-secondary/15 transition-colors">
+                        <div className="flex gap-3">
+                          <div className="w-12 h-12 rounded-2xl gradient-brand flex items-center justify-center">
+                            <Image className="w-6 h-6 text-primary-foreground" />
+                          </div>
+                          <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center">
+                            <Video className="w-6 h-6 text-accent" />
+                          </div>
+                          <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center">
+                            <Mic className="w-6 h-6 text-foreground" />
+                          </div>
                         </div>
-                      )}
-                      <button onClick={() => removeMedia(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                        <X className="w-3 h-3" />
+                        <p className="text-sm text-muted-foreground font-medium">Add photos, videos, or audio</p>
+                      </button>
+
+                      <button
+                        id="btn-open-voice-recorder"
+                        onClick={() => setIsRecordingMode(true)}
+                        type="button"
+                        className="w-full py-3 px-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 font-display font-extrabold text-xs flex items-center justify-center gap-2.5 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)]"
+                      >
+                        <Mic className="w-4.5 h-4.5 animate-pulse text-emerald-400" />
+                        Record Live Audio Memo
                       </button>
                     </div>
-                  ))}
-                  {mediaFiles.length < 10 && (
-                    <button onClick={() => fileRef.current?.click()} className="flex-shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-border flex items-center justify-center hover:border-primary/50 transition-colors">
-                      <Plus className="w-6 h-6 text-muted-foreground" />
-                    </button>
                   )}
-                </div>
-              )}
-
-              {mediaFiles.length === 0 && (
-                <button onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-colors mb-4">
-                  <div className="flex gap-3">
-                    <div className="w-12 h-12 rounded-2xl gradient-brand flex items-center justify-center">
-                      <Image className="w-6 h-6 text-primary-foreground" />
-                    </div>
-                    <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center">
-                      <Video className="w-6 h-6 text-accent" />
-                    </div>
-                    <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center">
-                      <Mic className="w-6 h-6 text-foreground" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground font-medium">Add photos, videos, or audio</p>
-                </button>
+                </>
               )}
 
               <input ref={fileRef} type="file" accept="image/*,video/*,audio/*" multiple className="hidden" onChange={handleFiles} />

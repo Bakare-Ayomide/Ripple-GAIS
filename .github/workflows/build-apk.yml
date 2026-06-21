@@ -40,7 +40,7 @@ jobs:
 
       - name: Initialize Capacitor Configuration
         run: |
-          npx cap init Ripple com.ripple.app --web-dir=dist --inline
+          npx cap init Ripple com.ripple.app --web-dir=dist
 
       - name: Add Android Native platform template
         run: |

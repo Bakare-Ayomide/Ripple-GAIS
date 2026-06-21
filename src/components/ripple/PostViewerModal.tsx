@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { ChevronLeft, Eye, Flame, Share2, Send } from "lucide-react";
+import { ChevronLeft, Eye, Flame, Share2, Send, VolumeX, Volume2 } from "lucide-react";
 import { useToggleLike, useToggleSave, type PostWithProfile } from "@/hooks/usePosts";
 import { useComments, useAddComment } from "@/hooks/useComments";
 import RichCaption from "./RichCaption";
@@ -23,6 +23,7 @@ const formatCount = (n: any) => {
 
 const PostViewerModal = ({ post, onClose }: Props) => {
   const navigate = useNavigate();
+  const [isMuted, setIsMuted] = useState(true);
   const [commentText, setCommentText] = useState("");
   const [currentMediaIdx, setCurrentMediaIdx] = useState(0);
   const toggleLike = useToggleLike();
@@ -143,16 +144,29 @@ const PostViewerModal = ({ post, onClose }: Props) => {
             >
               {mediaUrls.length > 0 ? (
                 isVideo(mediaUrls[currentMediaIdx]) ? (
-                  <video
-                    key={`v-${currentMediaIdx}`}
-                    ref={videoRef}
-                    src={activeMediaUrl || mediaUrls[currentMediaIdx]}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
+                  <div className="relative w-full h-full">
+                    <video
+                      key={`v-${currentMediaIdx}`}
+                      ref={videoRef}
+                      src={activeMediaUrl || mediaUrls[currentMediaIdx]}
+                      autoPlay
+                      loop
+                      muted={isMuted}
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      id={`btn-unmute-modal-${currentMediaIdx}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMuted(!isMuted);
+                      }}
+                      className="absolute bottom-5 left-5 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/80 transition-all z-20 border border-white/10"
+                      title={isMuted ? "Unmute sound" : "Mute sound"}
+                    >
+                      {isMuted ? <VolumeX className="w-5 h-5 text-white" /> : <Volume2 className="w-5 h-5 text-emerald-400" />}
+                    </button>
+                  </div>
                 ) : isAudio(mediaUrls[currentMediaIdx]) ? (
                   <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/40 flex flex-col items-center justify-center gap-6 p-8">
                     <div className="w-32 h-32 rounded-full gradient-brand flex items-center justify-center shadow-glow animate-pulse">

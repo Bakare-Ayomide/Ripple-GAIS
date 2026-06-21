@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Image as ImageIcon, Video, Music, Type, Loader2, Hash, AtSign } from "lucide-react";
+import { X, Image as ImageIcon, Video, Music, Type, Loader2, Hash, AtSign, Circle, Square, Mic } from "lucide-react";
 import { useCreateStory } from "@/hooks/useStories";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,68 @@ const StoryComposer = ({ open, onClose }: Props) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const createStory = useCreateStory();
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const audioFile = new File([audioBlob], `story-recording-${Date.now()}.webm`, { type: "audio/webm" });
+        const previewUrl = URL.createObjectURL(audioFile);
+        
+        setFile(audioFile);
+        setPreview(previewUrl);
+
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      
+      timerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      toast.error("Microphone permission denied or not supported");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
 
   const TRENDING_HASHTAGS = [
     "#DigitalArt", "#NightVibes", "#CodeLife", "#Wanderlust",
@@ -205,20 +267,53 @@ const StoryComposer = ({ open, onClose }: Props) => {
             {/* Media Canvas Stage */}
             {mediaType !== "text" ? (
               !preview ? (
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="w-full aspect-[3/4] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 hover:border-primary/50 bg-secondary/30 transition-colors"
-                >
-                  <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center shadow-sm">
-                    {mediaType === "image" && <ImageIcon className="w-7 h-7 text-primary-foreground" />}
-                    {mediaType === "video" && <Video className="w-7 h-7 text-primary-foreground" />}
-                    {mediaType === "audio" && <Music className="w-7 h-7 text-primary-foreground" />}
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-foreground font-display font-extrabold">Upload a {mediaType}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Tap/Click to select from your device</p>
-                  </div>
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="w-full aspect-[3/4] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 hover:border-primary/50 bg-secondary/30 transition-colors"
+                  >
+                    <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center shadow-sm">
+                      {mediaType === "image" && <ImageIcon className="w-7 h-7 text-primary-foreground" />}
+                      {mediaType === "video" && <Video className="w-7 h-7 text-primary-foreground" />}
+                      {mediaType === "audio" && <Music className="w-7 h-7 text-primary-foreground" />}
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-foreground font-display font-extrabold">Upload a {mediaType}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Tap/Click to select from your device</p>
+                    </div>
+                  </button>
+
+                  {mediaType === "audio" && (
+                    <div className="border border-emerald-500/20 bg-emerald-950/20 rounded-2xl p-4 flex flex-col items-center justify-center gap-3">
+                      {isRecording ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
+                          <p className="text-xs font-mono font-bold text-foreground">
+                            Recording Audio Waves: {formatTime(recordingDuration)}
+                          </p>
+                          <button
+                            id="btn-story-record-stop"
+                            onClick={stopRecording}
+                            type="button"
+                            className="bg-foreground text-background font-display font-black text-xs px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-foreground/80 mt-1 shadow-glow"
+                          >
+                            <Square className="w-3.5 h-3.5 fill-current" /> Stop and Save Audio
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          id="btn-story-record-start"
+                          onClick={startRecording}
+                          type="button"
+                          className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-display font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-glow"
+                        >
+                          <Mic className="w-4 h-4 text-white animate-pulse" />
+                          Record Live Audio Memo
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-neutral-950 flex items-center justify-center border border-white/5 shadow-inner">
                   {mediaType === "image" && (

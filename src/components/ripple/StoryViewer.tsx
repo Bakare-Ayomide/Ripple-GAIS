@@ -39,7 +39,7 @@ const StoryViewer = ({ groups, initialGroupIndex, onClose }: StoryViewerProps) =
   const [paused, setPaused] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [dragY, setDragY] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const startTimeRef = useRef(Date.now());
 
