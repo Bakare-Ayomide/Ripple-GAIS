@@ -315,7 +315,7 @@ const StoryComposer = ({ open, onClose }: Props) => {
                 {showMentions && mentionUsers && mentionUsers.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                    className="absolute left-0 right-0 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto z-20 animate-fade-in"
+                    className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto z-20 animate-fade-in"
                   >
                     {mentionUsers.map((u: any) => (
                       <button key={u.user_id} onClick={() => { insertText(`@${u.username}`); setShowMentions(false); }}
@@ -335,7 +335,7 @@ const StoryComposer = ({ open, onClose }: Props) => {
                 {showHashtags && (
                   <motion.div
                     initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                    className="absolute left-0 right-0 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
+                    className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
                   >
                     {filteredHashtags.map((tag) => (
                       <button key={tag} onClick={() => { insertText(tag); setShowHashtags(false); }}

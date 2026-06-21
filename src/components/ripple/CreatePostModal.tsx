@@ -262,7 +262,7 @@ const CreatePostModal = ({ open, onClose }: Props) => {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
-                    className="absolute left-5 right-5 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20"
+                    className="absolute left-5 right-5 top-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20"
                   >
                     {filteredHashtags.map((tag) => (
                       <button key={tag} onClick={() => addHashtag(tag)} className="w-full text-left px-4 py-2.5 text-sm text-primary font-semibold hover:bg-secondary/80 transition-colors first:rounded-t-2xl last:rounded-b-2xl">
@@ -283,7 +283,7 @@ const CreatePostModal = ({ open, onClose }: Props) => {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
-                    className="absolute left-5 right-5 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto z-20"
+                    className="absolute left-5 right-5 top-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto z-20"
                   >
                     {mentionUsers.map((u: any) => (
                       <button

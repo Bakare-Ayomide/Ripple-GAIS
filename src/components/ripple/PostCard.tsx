@@ -275,7 +275,12 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
 
       <AnimatePresence>
         {showComments && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
             <div className="mx-4 pt-3 border-t border-border/30 space-y-3 max-h-48 overflow-y-auto">
               {comments?.map((c: any) => (
                 <div key={c.id} className="flex gap-2 items-start">
@@ -305,10 +310,10 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
               <AnimatePresence>
                 {showMentions && mentionUsers && mentionUsers.length > 0 && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute left-4 right-4 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute left-4 right-4 top-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
                   >
                     {mentionUsers.map((u: any) => (
                       <button
@@ -331,10 +336,10 @@ const PostCard = ({ post, featured = false, onOpen }: { post: PostWithProfile; f
               <AnimatePresence>
                 {showHashtags && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute left-4 right-4 bottom-full mb-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute left-4 right-4 top-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-40 overflow-y-auto z-20 animate-fade-in"
                   >
                     {filteredHashtags.map((tag) => (
                       <button

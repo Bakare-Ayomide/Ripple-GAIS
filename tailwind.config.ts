@@ -14,6 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
+        sans: ["var(--font-body)"],
         display: ["var(--font-display)"],
         body: ["var(--font-body)"],
       },
