@@ -1,4 +1,6 @@
 // Custom full-stack dynamic bridge mapping Supabase queries directly to our SQL Backend
+import { resolveUrl } from "@/utils/api";
+
 export interface MockupUser {
   id: string;
   email: string;
@@ -28,7 +30,7 @@ class SupabaseAuth {
       
       // Validate session with backend to totally reflect deletion/updates from MySQL (phpmyadmin)
       try {
-        const res = await fetch('/api/auth/validate', {
+        const res = await fetch(resolveUrl('/api/auth/validate'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token })
@@ -69,7 +71,7 @@ class SupabaseAuth {
   }
 
   async signUp({ email, password, options }: { email: string; password?: string; options?: { data?: { username?: string; display_name?: string } } }) {
-    const res = await fetch('/api/auth/signup', {
+    const res = await fetch(resolveUrl('/api/auth/signup'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, options })
@@ -88,7 +90,7 @@ class SupabaseAuth {
   }
 
   async signInWithPassword({ email, password }: { email: string; password?: string }) {
-    const res = await fetch('/api/auth/signin', {
+    const res = await fetch(resolveUrl('/api/auth/signin'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -128,7 +130,7 @@ class SupabaseAuth {
   }
 
   async resetPasswordForEmail(email: string, options?: { redirectTo?: string }) {
-    const res = await fetch('/api/auth/reset-password', {
+    const res = await fetch(resolveUrl('/api/auth/reset-password'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, options })
@@ -158,7 +160,7 @@ class SupabaseAuth {
       }
     }
 
-    const res = await fetch('/api/auth/update-user', {
+    const res = await fetch(resolveUrl('/api/auth/update-user'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -188,7 +190,7 @@ class SupabaseStorageBucket {
     formData.append('path', pathStr);
     formData.append('bucket', this.bucket);
 
-    const res = await fetch('/api/storage/upload', {
+    const res = await fetch(resolveUrl('/api/storage/upload'), {
       method: 'POST',
       body: formData
     });
@@ -204,9 +206,10 @@ class SupabaseStorageBucket {
 
   getPublicUrl(pathStr: string) {
     const cached = SupabaseStorageBucket.urlCache.get(pathStr);
+    const resolved = cached || `/uploads/${pathStr.split('/').pop()}`;
     return {
       data: {
-        publicUrl: cached || `/uploads/${pathStr.split('/').pop()}`
+        publicUrl: resolveUrl(resolved)
       }
     };
   }
@@ -346,7 +349,7 @@ class SupabaseQueryBuilder {
     }
 
     try {
-      const response = await fetch('/api/supabase-mock', {
+      const response = await fetch(resolveUrl('/api/supabase-mock'), {
         method: 'POST',
         headers,
         body: JSON.stringify({

@@ -1,6 +1,6 @@
 import { useIsAdmin, useAllUsers, useAllPosts } from "@/hooks/useAdmin";
 import { Link, Navigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { 
   Users, 
   FileText, 
@@ -33,6 +33,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import VerifiedBadge from "@/components/ripple/VerifiedBadge";
 import { useAuth } from "@/contexts/AuthContext";
+import { resolveUrl } from "@/utils/api";
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
@@ -47,7 +48,7 @@ const Admin = () => {
   const { data: dbStatus, isLoading: loadingStatus, refetch: refetchStatus } = useQuery({
     queryKey: ["admin-db-status"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/db-status");
+      const response = await fetch(resolveUrl("/api/admin/db-status"));
       if (!response.ok) throw new Error("Could not fetch status");
       return response.json();
     }
@@ -80,7 +81,7 @@ const Admin = () => {
   const toggleVerified = async (u: any) => {
     const next = !u.is_verified;
     try {
-      const res = await fetch("/api/admin/users/update", {
+      const res = await fetch(resolveUrl("/api/admin/users/update"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: u.user_id, is_verified: next })
@@ -99,7 +100,7 @@ const Admin = () => {
   const toggleOnboardingCore = async (u: any) => {
     const next = !u.is_onboarding_core;
     try {
-      const res = await fetch("/api/admin/users/update", {
+      const res = await fetch(resolveUrl("/api/admin/users/update"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: u.user_id, is_onboarding_core: next })
@@ -120,7 +121,7 @@ const Admin = () => {
       return;
     }
     try {
-      const res = await fetch("/api/admin/posts/delete", {
+      const res = await fetch(resolveUrl("/api/admin/posts/delete"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: postId })
@@ -142,7 +143,7 @@ const Admin = () => {
       return;
     }
     try {
-      const res = await fetch("/api/admin/users/create", {
+      const res = await fetch(resolveUrl("/api/admin/users/create"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(createUserForm)
@@ -164,7 +165,7 @@ const Admin = () => {
     e.preventDefault();
     if (!editUserForm.user_id) return;
     try {
-      const res = await fetch("/api/admin/users/update", {
+      const res = await fetch(resolveUrl("/api/admin/users/update"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editUserForm)
@@ -188,7 +189,7 @@ const Admin = () => {
       return;
     }
     try {
-      const res = await fetch("/api/admin/users/delete", {
+      const res = await fetch(resolveUrl("/api/admin/users/delete"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId })
@@ -212,7 +213,7 @@ const Admin = () => {
   const toggleBan = async (userId: string, currentBan: boolean) => {
     try {
       const next = !currentBan;
-      const res = await fetch("/api/admin/users/ban", {
+      const res = await fetch(resolveUrl("/api/admin/users/ban"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, is_banned: next })
@@ -228,7 +229,7 @@ const Admin = () => {
   const toggleSuspend = async (userId: string, currentSusp: boolean) => {
     try {
       const next = !currentSusp;
-      const res = await fetch("/api/admin/users/suspend", {
+      const res = await fetch(resolveUrl("/api/admin/users/suspend"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, is_suspended: next })
@@ -248,7 +249,7 @@ const Admin = () => {
       return;
     }
     try {
-      const res = await fetch("/api/admin/posts/create", {
+      const res = await fetch(resolveUrl("/api/admin/posts/create"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(createPostForm)
@@ -272,7 +273,7 @@ const Admin = () => {
     e.preventDefault();
     if (!editPostForm.id) return;
     try {
-      const res = await fetch("/api/admin/posts/update", {
+      const res = await fetch(resolveUrl("/api/admin/posts/update"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editPostForm)
@@ -1139,7 +1140,7 @@ const Admin = () => {
               <div className="bg-card border border-border rounded-3xl p-6">
                 <div className="mb-4">
                   <h2 className="font-display font-extrabold text-lg text-foreground flex items-center gap-2">
-                    <PenTool className="w-5 h-5 text-emerald-400 animate-pulse" /> Default Gender-Aware Avatars
+                    <UserPlus className="w-5 h-5 text-emerald-400 animate-pulse" /> Default Gender-Aware Avatars
                   </h2>
                   <p className="text-xs text-muted-foreground">
                     Upload PNG images of brand assets or custom 3D emoji avatars. Brand new users registering on Ripple will automatically get assigned one of these customized default avatars based on their chosen gender category on the signup screen.
@@ -1171,22 +1172,25 @@ const GenderAvatarManager = ({ gender }: { gender: "male" | "female" | "nonbinar
   const [uploading, setUploading] = useState(false);
   const [currentAvatars, setCurrentAvatars] = useState<string[]>([]);
 
-  const fetchAvatars = async () => {
-    try {
-      const res = await fetch("/api/admin/default-avatars");
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.success && data?.configs?.[gender]) {
-          setCurrentAvatars(data.configs[gender]);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   useEffect(() => {
+    let active = true;
+    const fetchAvatars = async () => {
+      try {
+        const res = await fetch(resolveUrl("/api/admin/default-avatars"));
+        if (res.ok && active) {
+          const data = await res.json();
+          if (data?.success && data?.configs?.[gender] && Array.isArray(data.configs[gender])) {
+            setCurrentAvatars(data.configs[gender]);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading default avatars:", e);
+      }
+    };
     fetchAvatars();
+    return () => {
+      active = false;
+    };
   }, [gender]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1198,7 +1202,7 @@ const GenderAvatarManager = ({ gender }: { gender: "male" | "female" | "nonbinar
     formData.append("gender", gender);
 
     try {
-      const res = await fetch("/api/admin/default-avatars", {
+      const res = await fetch(resolveUrl("/api/admin/default-avatars"), {
         method: "POST",
         body: formData,
       });
@@ -1208,7 +1212,7 @@ const GenderAvatarManager = ({ gender }: { gender: "male" | "female" | "nonbinar
       }
       toast.success(`Custom default avatar for ${gender} uploaded successfully!`);
       const data = await res.json();
-      if (data?.configs?.[gender]) {
+      if (data?.success && data?.configs?.[gender] && Array.isArray(data.configs[gender])) {
         setCurrentAvatars(data.configs[gender]);
       }
     } catch (err: any) {
@@ -1226,12 +1230,12 @@ const GenderAvatarManager = ({ gender }: { gender: "male" | "female" | "nonbinar
         
         {/* Avatars List */}
         <div className="flex flex-wrap gap-2 mt-4 min-h-[50px] items-center">
-          {currentAvatars.length === 0 ? (
+          {(!currentAvatars || !Array.isArray(currentAvatars) || currentAvatars.length === 0) ? (
             <p className="text-[11px] text-muted-foreground italic">No custom PNG default avatars uploaded. Using system 3D defaults.</p>
           ) : (
             currentAvatars.map((url, i) => (
               <img
-                key={i}
+                key={url || i}
                 src={url}
                 alt=""
                 className="w-10 h-10 rounded-xl object-contain bg-background/50 border border-white/5 shadow-inner"

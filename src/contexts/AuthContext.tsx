@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveUrl } from "@/utils/api";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -69,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let list = gender === "male" ? MALE_AVATARS : gender === "female" ? FEMALE_AVATARS : NONBINARY_AVATARS;
       
       try {
-        const avatarsRes = await fetch('/api/admin/default-avatars');
+        const avatarsRes = await fetch(resolveUrl('/api/admin/default-avatars'));
         if (avatarsRes.ok) {
           const avatarsData = await avatarsRes.json();
           if (avatarsData?.success && avatarsData?.configs?.[gender] && avatarsData.configs[gender].length > 0) {
