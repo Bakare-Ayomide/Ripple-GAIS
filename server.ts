@@ -1794,29 +1794,47 @@ app.get('/api/admin/db-status', (req, res) => {
 
     try {
       if (pool && !useLocalFallback) {
-        const [userPosts]: any = await pool.query('SELECT id FROM posts WHERE user_id = ?', [user_id]);
-        const postIds = userPosts.map((p: any) => p.id);
+        const conn = await pool.getConnection();
+        try {
+          // Disable FK checks to guarantee cascade delete works with any custom constraints in live DB
+          await conn.query('SET FOREIGN_KEY_CHECKS = 0');
 
-        if (postIds.length > 0) {
-          const placeholders = postIds.map(() => '?').join(',');
-          await pool.query(`DELETE FROM comments WHERE post_id IN (${placeholders})`, postIds);
-          await pool.query(`DELETE FROM likes WHERE post_id IN (${placeholders})`, postIds);
-          await pool.query(`DELETE FROM saved_posts WHERE post_id IN (${placeholders})`, postIds);
-          await pool.query(`DELETE FROM notifications WHERE post_id IN (${placeholders})`, postIds);
+          const [userPosts]: any = await conn.query('SELECT id FROM posts WHERE user_id = ?', [user_id]);
+          const postIds = userPosts.map((p: any) => p.id);
+
+          if (postIds.length > 0) {
+            const placeholders = postIds.map(() => '?').join(',');
+            await conn.query(`DELETE FROM comments WHERE post_id IN (${placeholders})`, postIds);
+            await conn.query(`DELETE FROM likes WHERE post_id IN (${placeholders})`, postIds);
+            await conn.query(`DELETE FROM saved_posts WHERE post_id IN (${placeholders})`, postIds);
+            await conn.query(`DELETE FROM notifications WHERE post_id IN (${placeholders})`, postIds);
+          }
+
+          const [userStories]: any = await conn.query('SELECT id FROM stories WHERE user_id = ?', [user_id]);
+          const storyIds = userStories.map((s: any) => s.id);
+          if (storyIds.length > 0) {
+            const placeholders = storyIds.map(() => '?').join(',');
+            await conn.query(`DELETE FROM story_views WHERE story_id IN (${placeholders})`, storyIds);
+          }
+
+          await conn.query('DELETE FROM comments WHERE user_id = ?', [user_id]);
+          await conn.query('DELETE FROM likes WHERE user_id = ?', [user_id]);
+          await conn.query('DELETE FROM saved_posts WHERE user_id = ?', [user_id]);
+          await conn.query('DELETE FROM user_roles WHERE user_id = ?', [user_id]);
+          await conn.query('DELETE FROM stories WHERE user_id = ?', [user_id]);
+          await conn.query('DELETE FROM story_views WHERE viewer_id = ?', [user_id]);
+          await conn.query('DELETE FROM notifications WHERE recipient_id = ? OR actor_id = ?', [user_id, user_id]);
+          await conn.query('DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?', [user_id, user_id]);
+          await conn.query('DELETE FROM follows WHERE follower_id = ? OR following_id = ?', [user_id, user_id]);
+          await conn.query('DELETE FROM posts WHERE user_id = ?', [user_id]);
+          await conn.query('DELETE FROM profiles WHERE user_id = ?', [user_id]);
+          await conn.query('DELETE FROM users WHERE id = ?', [user_id]);
+
+          // Re-enable FK checks
+          await conn.query('SET FOREIGN_KEY_CHECKS = 1');
+        } finally {
+          conn.release();
         }
-
-        await pool.query('DELETE FROM comments WHERE user_id = ?', [user_id]);
-        await pool.query('DELETE FROM likes WHERE user_id = ?', [user_id]);
-        await pool.query('DELETE FROM saved_posts WHERE user_id = ?', [user_id]);
-        await pool.query('DELETE FROM user_roles WHERE user_id = ?', [user_id]);
-        await pool.query('DELETE FROM stories WHERE user_id = ?', [user_id]);
-        await pool.query('DELETE FROM story_views WHERE viewer_id = ?', [user_id]);
-        await pool.query('DELETE FROM notifications WHERE recipient_id = ? OR actor_id = ?', [user_id, user_id]);
-        await pool.query('DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?', [user_id, user_id]);
-        await pool.query('DELETE FROM follows WHERE follower_id = ? OR following_id = ?', [user_id, user_id]);
-        await pool.query('DELETE FROM posts WHERE user_id = ?', [user_id]);
-        await pool.query('DELETE FROM profiles WHERE user_id = ?', [user_id]);
-        await pool.query('DELETE FROM users WHERE id = ?', [user_id]);
       }
 
       const uPosts = localDb.posts.filter(p => p.user_id === user_id);

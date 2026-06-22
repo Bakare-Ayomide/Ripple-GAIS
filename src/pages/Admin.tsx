@@ -116,24 +116,63 @@ const Admin = () => {
     }
   };
 
+  // --- STATE FOR CUSTOM CONFIRM DIALOG ---
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    onConfirm: () => {}
+  });
+
+  const showConfirm = (options: {
+    title: string;
+    description: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+  }) => {
+    setConfirmModal({
+      isOpen: true,
+      title: options.title,
+      description: options.description,
+      confirmText: options.confirmText || "Confirm",
+      cancelText: options.cancelText || "Cancel",
+      onConfirm: () => {
+        options.onConfirm();
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   const deletePost = async (postId: string) => {
-    if (!window.confirm("Are you sure you want to delete this post? This will permanently remove it along with all its likes and comments from the database.")) {
-      return;
-    }
-    try {
-      const res = await fetch(resolveUrl("/api/admin/posts/delete"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId })
-      });
-      if (!res.ok) throw new Error("Could not delete post");
-      toast.success("Post deleted successfully");
-      refetchPosts();
-      qc.invalidateQueries({ queryKey: ["admin-all-posts"] });
-      qc.invalidateQueries({ queryKey: ["posts"] });
-    } catch (err: any) {
-      toast.error(err.message);
-    }
+    showConfirm({
+      title: "Delete Post Permanently?",
+      description: "Are you sure you want to delete this post? This will permanently remove the post, along with all its comments, likes, and saved states from the database. This action cannot be undone.",
+      confirmText: "Delete Post",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(resolveUrl("/api/admin/posts/delete"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: postId })
+          });
+          if (!res.ok) throw new Error("Could not delete post");
+          toast.success("Post deleted successfully");
+          refetchPosts();
+          qc.invalidateQueries({ queryKey: ["admin-all-posts"] });
+          qc.invalidateQueries({ queryKey: ["posts"] });
+        } catch (err: any) {
+          toast.error(err.message);
+        }
+      }
+    });
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -185,29 +224,33 @@ const Admin = () => {
   };
 
   const handleDeleteUser = async (userId: string, username: string) => {
-    if (!window.confirm(`CRITICAL SYSTEM WARNING: Are you sure you want to permanently delete user @${username}? This will thoroughly remove all their posts, replies, likes, follow connections, role and main credentials from both the live database and Local persistences. This operation cannot be undone!`)) {
-      return;
-    }
-    try {
-      const res = await fetch(resolveUrl("/api/admin/users/delete"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId })
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || "Failed to execute deletion.");
+    showConfirm({
+      title: "CRITICAL SYSTEM WARNING",
+      description: `Are you sure you want to permanently delete @${username}? This will thoroughly remove all their posts, replies, likes, follow connections, role, stories, and login credentials from both the live database and fallback storage. This operation is irreversible!`,
+      confirmText: "Delete Account Immediately",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(resolveUrl("/api/admin/users/delete"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId })
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(txt || "Failed to execute deletion.");
+          }
+          toast.success(`User @${username} has been fully deleted from the service.`);
+          refetchUsers();
+          refetchPosts();
+          qc.invalidateQueries({ queryKey: ["admin-all-users"] });
+          qc.invalidateQueries({ queryKey: ["admin-all-posts"] });
+          qc.invalidateQueries({ queryKey: ["posts"] });
+          qc.invalidateQueries({ queryKey: ["profile"] });
+        } catch (err: any) {
+          toast.error(err.message);
+        }
       }
-      toast.success(`User @${username} has been fully deleted from the service.`);
-      refetchUsers();
-      refetchPosts();
-      qc.invalidateQueries({ queryKey: ["admin-all-users"] });
-      qc.invalidateQueries({ queryKey: ["admin-all-posts"] });
-      qc.invalidateQueries({ queryKey: ["posts"] });
-      qc.invalidateQueries({ queryKey: ["profile"] });
-    } catch (err: any) {
-      toast.error(err.message);
-    }
+    });
   };
 
   const toggleBan = async (userId: string, currentBan: boolean) => {
@@ -293,40 +336,47 @@ const Admin = () => {
   };
 
   const toggleAdminRole = async (targetUserId: string, isCurrentlyAdmin: boolean) => {
+    const executeRoleChange = async () => {
+      if (isCurrentlyAdmin) {
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", targetUserId);
+        if (error) {
+          toast.error("Failed to revoke Admin role: " + error.message);
+        } else {
+          toast.success("Admin role revoked successfully.");
+          qc.invalidateQueries({ queryKey: ["is-admin"] });
+          refetchRoles();
+        }
+      } else {
+        const { error } = await supabase
+          .from("user_roles")
+          .insert({
+            id: Math.random().toString(36).substring(2),
+            user_id: targetUserId,
+            role: "admin"
+          });
+        if (error) {
+          toast.error("Failed to grant Admin role: " + error.message);
+        } else {
+          toast.success("Admin role granted successfully.");
+          qc.invalidateQueries({ queryKey: ["is-admin"] });
+          refetchRoles();
+        }
+      }
+    };
+
     // If we're demoting ourselves, verify first
     if (targetUserId === user?.id && isCurrentlyAdmin) {
-      if (!window.confirm("Are you sure you want to demote yourself from Admin? You will lose access to this panel.")) {
-        return;
-      }
-    }
-
-    if (isCurrentlyAdmin) {
-      const { error } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", targetUserId);
-      if (error) {
-        toast.error("Failed to revoke Admin role: " + error.message);
-      } else {
-        toast.success("Admin role revoked successfully.");
-        qc.invalidateQueries({ queryKey: ["is-admin"] });
-        refetchRoles();
-      }
+      showConfirm({
+        title: "Demote Yourself?",
+        description: "Are you sure you want to demote yourself from Admin? You will lose access to this control panel immediately.",
+        confirmText: "Demote Me",
+        onConfirm: executeRoleChange
+      });
     } else {
-      const { error } = await supabase
-        .from("user_roles")
-        .insert({
-          id: Math.random().toString(36).substring(2),
-          user_id: targetUserId,
-          role: "admin"
-        });
-      if (error) {
-        toast.error("Failed to grant Admin role: " + error.message);
-      } else {
-        toast.success("Admin role granted successfully.");
-        qc.invalidateQueries({ queryKey: ["is-admin"] });
-        refetchRoles();
-      }
+      executeRoleChange();
     }
   };
 
@@ -362,85 +412,96 @@ const Admin = () => {
   if (!user || !isAdmin) return <Navigate to="/" replace />;
 
   return (
-    <div className="min-h-screen bg-background text-foreground w-full py-8 md:py-12">
-      <div className="max-w-[1200px] mx-auto px-4 font-sans">
+    <div className="min-h-screen bg-background text-foreground w-full py-8 md:py-12 relative overflow-hidden">
+      {/* Decorative ambient glow blobs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/5 blur-3xl -z-10 pointer-events-none" />
+      <div className="absolute bottom-1/3 right-10 w-80 h-80 rounded-full bg-indigo-500/5 blur-3xl -z-10 pointer-events-none" />
+
+      <div className="max-w-[1240px] mx-auto px-4 font-sans relative">
       
       {/* Return to App Button */}
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 font-display font-semibold transition-colors"
+        className="inline-flex items-center gap-2 text-xs font-mono tracking-wider font-bold text-muted-foreground hover:text-primary mb-6 uppercase transition-all hover:translate-x-[-2px]"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to Ripple feed
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to feed
       </Link>
 
       {/* Header Panel */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-glow">
-          <Shield className="w-6 h-6 text-primary-foreground" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-border/60">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+            <Shield className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="font-display font-black text-2xl md:text-3xl tracking-tight text-foreground">Control Center</h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">Admin-tier metrics, security directives, and system states.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-display font-extrabold text-2xl text-foreground">Control Center</h1>
-          <p className="text-sm text-muted-foreground">Internal administration, role management, and content control</p>
+
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[11px] font-mono tracking-wider text-muted-foreground font-bold uppercase">System Console Live</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Admin Inner Navigation Sidebar */}
-        <div className="lg:col-span-3 flex flex-row overflow-x-auto lg:flex-col gap-2 pb-4 lg:pb-0 lg:space-y-2 scrollbar-none">
-          <p className="hidden lg:block text-xs font-mono font-bold tracking-wider text-muted-foreground uppercase px-3 mb-2">
-            Section Navigation
+        <div className="lg:col-span-3 flex flex-row overflow-x-auto lg:flex-col gap-2 pb-4 lg:pb-0 lg:space-y-1.5 scrollbar-none sticky top-6 bg-background/50 backdrop-blur-md z-10 py-1.5 lg:py-0">
+          <p className="hidden lg:block text-[10px] font-mono font-bold tracking-wider text-muted-foreground/80 uppercase px-3 mb-2.5">
+            System Operations
           </p>
           <button
             onClick={() => setTab("overview")}
-            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left lg:w-full ${
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-extrabold text-sm transition-all text-left lg:w-full border ${
               tab === "overview"
-                ? "bg-primary text-primary-foreground shadow-glow"
-                : "bg-card border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "bg-primary text-primary-foreground border-transparent shadow-lg shadow-primary/15"
+                : "bg-card border-border/80 text-muted-foreground hover:bg-secondary/80 hover:text-foreground hover:border-border"
             }`}
           >
-            <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
-            <span className="whitespace-nowrap">Overview & Systems</span>
+            <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
+            <span className="whitespace-nowrap">Dashboard</span>
           </button>
           
           <button
             onClick={() => setTab("users")}
-            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left lg:w-full ${
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-extrabold text-sm transition-all text-left lg:w-full border ${
               tab === "users"
-                ? "bg-primary text-primary-foreground shadow-glow"
-                : "bg-card border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "bg-primary text-primary-foreground border-transparent shadow-lg shadow-primary/15"
+                : "bg-card border-border/80 text-muted-foreground hover:bg-secondary/80 hover:text-foreground hover:border-border"
             }`}
           >
-            <Users className="w-5 h-5 flex-shrink-0" />
-            <span className="whitespace-nowrap">Users & Roles</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/35 text-foreground font-mono">
+            <Users className="w-4 h-4 flex-shrink-0" />
+            <span className="whitespace-nowrap flex-grow">Users & Roles</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${tab === 'users' ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-secondary text-foreground'}`}>
               {users?.length || 0}
             </span>
           </button>
 
           <button
             onClick={() => setTab("posts")}
-            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left lg:w-full ${
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-extrabold text-sm transition-all text-left lg:w-full border ${
               tab === "posts"
-                ? "bg-primary text-primary-foreground shadow-glow"
-                : "bg-card border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "bg-primary text-primary-foreground border-transparent shadow-lg shadow-primary/15"
+                : "bg-card border-border/80 text-muted-foreground hover:bg-secondary/80 hover:text-foreground hover:border-border"
             }`}
           >
-            <FileText className="w-5 h-5 flex-shrink-0" />
-            <span className="whitespace-nowrap">Content Moderation</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/35 text-foreground font-mono">
+            <FileText className="w-4 h-4 flex-shrink-0" />
+            <span className="whitespace-nowrap flex-grow">Moderation</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${tab === 'posts' ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-secondary text-foreground'}`}>
               {posts?.length || 0}
             </span>
           </button>
 
           <button
             onClick={() => setTab("avatars")}
-            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-bold text-sm transition-all text-left lg:w-full ${
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl font-display font-extrabold text-sm transition-all text-left lg:w-full border ${
               tab === "avatars"
-                ? "bg-primary text-primary-foreground shadow-glow"
-                : "bg-card border border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "bg-primary text-primary-foreground border-transparent shadow-lg shadow-primary/15"
+                : "bg-card border-border/80 text-muted-foreground hover:bg-secondary/80 hover:text-foreground hover:border-border"
             }`}
           >
-            <PenTool className="w-5 h-5 flex-shrink-0" />
+            <PenTool className="w-4 h-4 flex-shrink-0" />
             <span className="whitespace-nowrap">Default Avatars</span>
           </button>
         </div>
@@ -453,94 +514,99 @@ const Admin = () => {
             <div className="space-y-6">
               {/* Highlight statistics cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-card border border-border rounded-2xl p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs text-muted-foreground font-mono">ALL USERS</span>
-                    <Users className="w-4 h-4 text-primary" />
+                <div className="bg-card border border-border/80 rounded-2xl p-5 hover:border-primary/30 hover:shadow-lg transition-all duration-300 relative group overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-all" />
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] text-muted-foreground font-mono font-bold uppercase tracking-wider">Registered Users</span>
+                    <Users className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
                   </div>
-                  <p className="font-display font-extrabold text-3xl text-foreground">{users?.length || 0}</p>
+                  <p className="font-display font-black text-3xl md:text-4xl text-foreground tracking-tight">{users?.length || 0}</p>
                 </div>
                 
-                <div className="bg-card border border-border rounded-2xl p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs text-muted-foreground font-mono">VERIFIED</span>
-                    <BadgeCheck className="w-4 h-4 text-[#1d9bf0]" />
+                <div className="bg-card border border-border/80 rounded-2xl p-5 hover:border-sky-500/30 hover:shadow-lg transition-all duration-300 relative group overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/5 rounded-full blur-xl group-hover:bg-sky-500/10 transition-all" />
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] text-muted-foreground font-mono font-bold uppercase tracking-wider">Verified Creators</span>
+                    <BadgeCheck className="w-4 h-4 text-[#1d9bf0] group-hover:scale-110 transition-transform" />
                   </div>
-                  <p className="font-display font-extrabold text-3xl text-foreground">{verifiedCount}</p>
+                  <p className="font-display font-black text-3xl md:text-4xl text-foreground tracking-tight">{verifiedCount}</p>
                 </div>
 
-                <div className="bg-card border border-border rounded-2xl p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs text-muted-foreground font-mono">POSTS</span>
-                    <FileText className="w-4 h-4 text-accent" />
+                <div className="bg-card border border-border/80 rounded-2xl p-5 hover:border-indigo-500/30 hover:shadow-lg transition-all duration-300 relative group overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl group-hover:bg-indigo-500/10 transition-all" />
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] text-muted-foreground font-mono font-bold uppercase tracking-wider">Indexed Posts</span>
+                    <FileText className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" />
                   </div>
-                  <p className="font-display font-extrabold text-3xl text-foreground">{posts?.length || 0}</p>
+                  <p className="font-display font-black text-3xl md:text-4xl text-foreground tracking-tight">{posts?.length || 0}</p>
                 </div>
 
-                <div className="bg-card border border-border rounded-2xl p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs text-muted-foreground font-mono">ADMINS</span>
-                    <UserCog className="w-4 h-4 text-emerald-500" />
+                <div className="bg-card border border-border/80 rounded-2xl p-5 hover:border-emerald-500/30 hover:shadow-lg transition-all duration-300 relative group overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all" />
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] text-muted-foreground font-mono font-bold uppercase tracking-wider">Total Administrators</span>
+                    <UserCog className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
                   </div>
-                  <p className="font-display font-extrabold text-3xl text-foreground">{adminCount || 1}</p>
+                  <p className="font-display font-black text-3xl md:text-4xl text-foreground tracking-tight">{adminCount || 1}</p>
                 </div>
               </div>
 
               {/* Database and Infrastructure Diagnostics */}
-              <div className="bg-card border border-border rounded-2xl p-6">
-                <h3 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
-                  <Database className="w-5 h-5 text-primary" />
-                  Database Configuration
+              <div className="bg-card border border-border rounded-3xl p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-[400px] h-[200px] bg-primary/[0.02] rounded-full blur-3xl pointer-events-none" />
+                <h3 className="font-display font-extrabold text-base text-foreground mb-5 flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />
+                  Database Synchronizer Diagnostics
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3 font-mono text-xs">
-                    <div className="flex justify-between py-1.5 border-b border-border/60">
-                      <span className="text-muted-foreground">Target Host:</span>
-                      <span className="text-foreground font-bold">{dbStatus?.host || "131.153.147.178"}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2 text-xs font-mono">
+                    <div className="flex justify-between py-2 border-b border-border/40">
+                      <span className="text-muted-foreground">Target Host IP:</span>
+                      <span className="text-foreground font-bold tracking-tight">{dbStatus?.host || "131.153.147.178"}</span>
                     </div>
-                    <div className="flex justify-between py-1.5 border-b border-border/60">
-                      <span className="text-muted-foreground">Target Port:</span>
-                      <span className="text-foreground">3306</span>
+                    <div className="flex justify-between py-2 border-b border-border/40">
+                      <span className="text-muted-foreground">Target Inbound Port:</span>
+                      <span className="text-foreground font-medium">3306</span>
                     </div>
-                    <div className="flex justify-between py-1.5 border-b border-border/60">
-                      <span className="text-muted-foreground">Target Database Name:</span>
-                      <span className="text-foreground">{dbStatus?.database || "zerolord_ripple"}</span>
+                    <div className="flex justify-between py-2 border-b border-border/40">
+                      <span className="text-muted-foreground">Schema Identifier:</span>
+                      <span className="text-foreground font-bold">{dbStatus?.database || "zerolord_ripple"}</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col justify-center items-start border-l lg:border-l border-border pl-6 space-y-2">
-                    <p className="text-sm font-semibold text-foreground">Current Operating Sync State:</p>
+                  <div className="flex flex-col justify-center items-start border-t md:border-t-0 md:border-l border-border/60 pt-6 md:pt-0 md:pl-8 space-y-3">
+                    <p className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Synchronizer Status:</p>
                     {dbStatus?.useLocalFallback ? (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/10 text-orange-500 border border-orange-500/20 text-xs font-bold">
-                        <Cpu className="w-4 h-4" />
-                        Local Fallback Active
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/10 text-orange-500 border border-orange-500/20 text-xs font-mono font-bold">
+                        <Cpu className="w-3.5 h-3.5" />
+                        Fallback Store Active
                       </div>
                     ) : (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-bold">
-                        <CheckCircle className="w-4 h-4 animate-pulse" />
-                        Live MySQL Connected
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-mono font-bold">
+                        <CheckCircle className="w-3.5 h-3.5 animate-pulse" />
+                        Live cloud SQL Instance Connected
                       </div>
                     )}
-                    <span className="text-[11px] text-muted-foreground leading-normal mt-1">
-                      If the remote MySQL server is unreachable, Ripple automatically falls back to secure Local JSON Persistence.
-                    </span>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-sans max-w-sm">
+                      If the centralized remote MySQL server becomes unreachable, Ripple clients automatically gracefully switch to secure client-side Local persistence.
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Logged in Admin Session Detail */}
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="text-sm font-mono font-bold text-muted-foreground mb-3 uppercase tracking-wider">
-                  Active Admin Session
+              <div className="bg-card border border-border/80 rounded-2xl p-5 relative overflow-hidden">
+                <h3 className="text-[10px] font-mono font-bold text-muted-foreground mb-4 uppercase tracking-wider">
+                  Logged Session Metadata
                 </h3>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center font-display font-extrabold text-foreground border border-border">
-                    A
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center font-display font-black text-foreground border border-border text-lg shadow-sm">
+                    {user?.email ? user.email.charAt(0).toUpperCase() : "A"}
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{user?.email || "No email"}</p>
-                    <p className="text-xs text-muted-foreground font-mono">User UUID: {user?.id}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-foreground truncate">{user?.email || "anonymous-admin"}</p>
+                    <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">UID: {user?.id}</p>
                   </div>
                 </div>
               </div>
@@ -1163,6 +1229,42 @@ const Admin = () => {
 
         </div>
       </div>
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card w-full max-w-md border border-border rounded-3xl p-6 shadow-2xl relative overflow-hidden transition-all scale-100">
+            <div className="absolute top-0 left-0 w-full h-1 bg-destructive/50" />
+            <div className="mb-5">
+              <h3 className="font-display font-extrabold text-lg text-foreground flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                {confirmModal.title}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+                {confirmModal.description}
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2.5 rounded-xl text-xs bg-secondary hover:bg-border text-foreground transition-all font-semibold"
+              >
+                {confirmModal.cancelText || "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className="px-4 py-2.5 rounded-xl text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all font-bold shadow-lg shadow-destructive/10"
+              >
+                {confirmModal.confirmText || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   </div>
   );

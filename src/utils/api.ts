@@ -10,23 +10,32 @@ export function getApiBaseUrl(): string {
   if (typeof window === "undefined") return "";
 
   const origin = window.location.origin || "";
+  
+  const isLocalDev = 
+    origin.includes(":3000") || 
+    origin.includes(":5173") || 
+    origin.includes(":5174") || 
+    origin.includes(".run.app");
+
   const isMobileApp = 
+    (window as any).Capacitor !== undefined ||
+    (window as any).cordova !== undefined ||
     origin.startsWith("capacitor:") || 
     origin.startsWith("file:") || 
     origin.startsWith("local:") || 
-    (origin.startsWith("http://localhost") && !window.location.port) || // pure localhost served without port e.g. on native capacitor
-    (navigator.userAgent.toLowerCase().includes("android") && !origin.includes(".run.app") && !origin.includes("3000") && !origin.includes("5173"));
+    origin === "null" ||
+    ((origin.startsWith("http://localhost") || origin.startsWith("https://localhost")) && !isLocalDev) ||
+    (navigator.userAgent.toLowerCase().includes("android") && !isLocalDev);
 
   if (isMobileApp) {
-    // If a developer wants to connect their build to a debug backend (e.g., local dev or AI Studio Dev App URL), 
-    // they can specify it in localStorage. Example: localStorage.setItem('ripple_custom_api_url', 'https://ais-dev...')
+    // Check if the user stored a custom API URL override in local storage
     const customUrl = localStorage.getItem("ripple_custom_api_url");
     if (customUrl) return customUrl;
     
     return PRODUCTION_API_URL;
   }
 
-  // Otherwise, default to standard relative URL resolving to the current hosted host (e.g. AI Studio development and production servers)
+  // Otherwise, default to standard relative URL for web deployment
   return "";
 }
 
