@@ -4,7 +4,7 @@
  */
 
 // Production API URL for fallback on mobile
-export const PRODUCTION_API_URL = "https://ripple.zerolord.com";
+export const PRODUCTION_API_URL = "https://ais-pre-jmpumobwwvuqd64xddpal5-398901224661.europe-west2.run.app";
 
 export function getApiBaseUrl(): string {
   if (typeof window === "undefined") return "";

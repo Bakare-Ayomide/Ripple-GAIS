@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Waves, ArrowRight, Eye, EyeOff, Settings } from "lucide-react";
+import { Waves, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 type Mode = "signin" | "signup" | "forgot";
@@ -16,29 +16,6 @@ const Auth = () => {
   const [gender, setGender] = useState<"male" | "female" | "nonbinary">("male");
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const [showServerSettings, setShowServerSettings] = useState(false);
-  const [tempApiUrl, setTempApiUrl] = useState(() => {
-    return localStorage.getItem("ripple_custom_api_url") || "";
-  });
-
-  const handleSaveApiUrl = () => {
-    let cleanUrl = tempApiUrl.trim();
-    if (cleanUrl) {
-      if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
-        cleanUrl = `https://${cleanUrl}`;
-      }
-      if (cleanUrl.endsWith("/")) {
-        cleanUrl = cleanUrl.slice(0, -1);
-      }
-      localStorage.setItem("ripple_custom_api_url", cleanUrl);
-      toast.success(`Server URL updated to ${cleanUrl}`);
-    } else {
-      localStorage.removeItem("ripple_custom_api_url");
-      toast.success("Using default production API configuration.");
-    }
-    setShowServerSettings(false);
-  };
 
   if (loading) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -229,76 +206,6 @@ const Auth = () => {
         </p>
       </motion.div>
 
-      {/* Connection gear button */}
-      <div className="absolute top-4 right-4 z-20">
-        <button 
-          onClick={() => setShowServerSettings(true)}
-          className="p-2.5 rounded-full bg-secondary/80 text-muted-foreground hover:text-foreground border border-border/40 backdrop-blur"
-          title="Configure API Server"
-        >
-          <Settings className="w-5 h-5 animate-spin-slow" />
-        </button>
-      </div>
-
-      {/* Absolute overlay modal for API Server Endpoint customization */}
-      <AnimatePresence>
-        {showServerSettings && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, y: 10 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
-              className="bg-card border border-border w-full max-w-sm rounded-2xl p-6 shadow-2xl relative"
-            >
-              <h3 className="font-display font-extrabold text-lg text-foreground mb-1 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-primary" /> API Server Connection
-              </h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                Configure the target API server endpoint to route requests. Ideal for web testing and native android app (APK) debugging.
-              </p>
-
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">Server URL</label>
-                  <input
-                    type="url"
-                    placeholder="https://ripple.zerolord.com"
-                    value={tempApiUrl}
-                    onChange={(e) => setTempApiUrl(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-xl bg-secondary text-foreground text-sm font-medium border border-border/60 outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                  <p className="text-[10px] text-muted-foreground italic">
-                    Leave completely empty to default to standard production API (or localhost).
-                  </p>
-                </div>
-
-                <div className="flex gap-2 justify-end pt-2">
-                  <button
-                    onClick={() => {
-                      setShowServerSettings(false);
-                      setTempApiUrl(localStorage.getItem("ripple_custom_api_url") || "");
-                    }}
-                    className="h-10 px-4 rounded-xl text-xs font-semibold hover:bg-secondary text-muted-foreground transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveApiUrl}
-                    className="h-10 px-4 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-95 transition-all shadow-sm"
-                  >
-                    Save & Reconnect
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

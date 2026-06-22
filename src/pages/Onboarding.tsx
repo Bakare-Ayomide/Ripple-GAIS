@@ -73,7 +73,7 @@ const STREAM_MESSAGES = [
 ];
 
 const Onboarding = () => {
-  const { user, signUp, signIn } = useAuth();
+  const { user, signUp, signIn, refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const [stage, setStage] = useState<Stage>("splash");
@@ -177,6 +177,9 @@ const Onboarding = () => {
       }
       setDisplayName(user.user_metadata?.display_name || "");
       setShoreUsername(user.user_metadata?.username || "");
+      if (user.user_metadata?.avatar_url) {
+        setAvatarUrl(user.user_metadata.avatar_url);
+      }
     }
   }, [user, stage]);
 
@@ -319,6 +322,8 @@ const Onboarding = () => {
       await supabase.auth.updateUser({
         data: { onboarding_completed: true, needs_onboarding: false }
       });
+
+      await refreshUser();
     }
     navigate("/");
     toast.success("Welcome to Ripple! Directing to main stream.");
@@ -1197,26 +1202,8 @@ const Onboarding = () => {
                 <div className="flex items-center gap-3.5 p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl">
                   <img src={avatarUrl} alt="avatar" className="w-12 h-12 rounded-2xl bg-black border border-white/10" />
                   <div className="flex-1">
-                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Select Visual Symbol</span>
-                    <div className="flex gap-1.5 mt-1.5">
-                      {[
-                        { seed: "sailor", img: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=sailor&backgroundType=gradientLinear&backgroundRotation=120" },
-                        { seed: "captain", img: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=captain&backgroundType=gradientLinear&backgroundRotation=180" },
-                        { seed: "lighthouse", img: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=lighthouse&backgroundType=gradientLinear" },
-                        { seed: "mermaid", img: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=mermaid&backgroundType=gradientLinear" }
-                      ].map((av) => (
-                        <button
-                          key={av.seed}
-                          type="button"
-                          onClick={() => setAvatarUrl(av.img)}
-                          className={`w-8 h-8 rounded-lg overflow-hidden border transition-all ${
-                            avatarUrl === av.img ? "border-emerald-400 scale-105" : "border-white/5 opacity-60"
-                          }`}
-                        >
-                          <img src={av.img} alt="preset" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest block">Sailing Identity</span>
+                    <span className="text-xs text-emerald-400 font-semibold block mt-0.5">Admin-assigned default avatar active</span>
                   </div>
                 </div>
 
