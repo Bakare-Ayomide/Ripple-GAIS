@@ -106,7 +106,9 @@ const CreatePostModal = ({ open, onClose }: Props) => {
       mediaRecorderRef.current.onstop = null;
       try {
         mediaRecorderRef.current.stop();
-      } catch (e) {}
+      } catch (e) {
+        // ignore
+      }
       const stream = mediaRecorderRef.current.stream;
       if (stream) stream.getTracks().forEach((track) => track.stop());
     }

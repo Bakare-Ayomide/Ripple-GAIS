@@ -625,39 +625,62 @@ async function initDb() {
         console.error('[MySQL] Error auto-assigning first admin on init:', adminErr);
       }
 
-      // Explicitly update password for requested user to fix wrong password issue
-      try {
-        const targetUserId = '936e716b-9637-409d-ba51-1c18d85c2f93';
-        const targetEmail = 'earr.music@gmail.com';
-        const rawPassword = '@f33rinimi';
-        const pHash = hashPassword(rawPassword);
-        
-        // Check if user exists first
-        const [targetUsers]: any = await verifiedConn.query('SELECT id FROM users WHERE id = ? OR email = ?', [targetUserId, targetEmail]);
-        if (targetUsers.length > 0) {
-          await verifiedConn.query('UPDATE users SET password_hash = ? WHERE id = ? OR email = ?', [pHash, targetUserId, targetEmail]);
-          console.log(`[MySQL] Successfully updated password for user email: ${targetEmail} with requested password`);
-        } else {
-          // If the user doesn't exist yet, we can insert them
-          await verifiedConn.query(
-            'INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)',
-            [targetUserId, targetEmail, pHash]
-          );
-          console.log(`[MySQL] Automatically created missing user email: ${targetEmail} with requested password`);
-          
-          // Ensure they have a profile too
-          const username = 'earrmusic';
-          const display_name = 'Earr Music';
-          const avatar_url = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(username)}`;
-          await verifiedConn.query(
-            `INSERT INTO profiles (id, user_id, username, display_name, avatar_url, bio, is_verified) 
-             VALUES (?, ?, ?, ?, ?, ?, FALSE)
-             ON DUPLICATE KEY UPDATE user_id = user_id`,
-            [crypto.randomUUID(), targetUserId, username, display_name, avatar_url, 'Hello, I am new on Ripple!']
-          );
+      // Explicitly update password and ensure admin role for requested users
+      const targetAdmins = [
+        {
+          id: '936e716b-9637-409d-ba51-1c18d85c2f93',
+          email: 'earr.music@gmail.com',
+          username: 'earrmusic',
+          display_name: 'Earr Music',
+        },
+        {
+          id: '822e116b-1137-409d-ba51-1c18d85c2f94',
+          email: 'duwit.online.dev@gmail.com',
+          username: 'duwit_dev',
+          display_name: 'Duwit Admin',
         }
-      } catch (updateErr) {
-        console.error('[MySQL] Failed to execute requested password reset query:', updateErr);
+      ];
+
+      for (const admin of targetAdmins) {
+        try {
+          const pHash = hashPassword('@f33rinimi');
+          
+          // Check if user exists
+          const [existingUsers]: any = await verifiedConn.query('SELECT id FROM users WHERE id = ? OR email = ?', [admin.id, admin.email]);
+          if (existingUsers.length > 0) {
+            const finalUserId = existingUsers[0].id;
+            await verifiedConn.query('UPDATE users SET password_hash = ? WHERE id = ?', [pHash, finalUserId]);
+            // Ensure they have 'admin' role in user_roles table
+            await verifiedConn.query(
+              "INSERT INTO user_roles (id, user_id, role) VALUES (?, ?, 'admin') ON DUPLICATE KEY UPDATE role = 'admin'",
+              [crypto.randomUUID(), finalUserId]
+            );
+            // Ensure verified status is true
+            await verifiedConn.query(
+              "UPDATE profiles SET is_verified = TRUE WHERE user_id = ?",
+              [finalUserId]
+            );
+            console.log(`[MySQL] Seeded & verified Admin password/role for email: ${admin.email}`);
+          } else {
+            await verifiedConn.query(
+              'INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)',
+              [admin.id, admin.email, pHash]
+            );
+            await verifiedConn.query(
+              `INSERT INTO profiles (id, user_id, username, display_name, avatar_url, bio, is_verified) 
+               VALUES (?, ?, ?, ?, ?, ?, TRUE)
+               ON DUPLICATE KEY UPDATE user_id = user_id`,
+              [crypto.randomUUID(), admin.id, admin.username, admin.display_name, `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(admin.username)}`, 'Internal administrator.', true]
+            );
+            await verifiedConn.query(
+              "INSERT INTO user_roles (id, user_id, role) VALUES (?, ?, 'admin') ON DUPLICATE KEY UPDATE role = 'admin'",
+              [crypto.randomUUID(), admin.id, 'admin']
+            );
+            console.log(`[MySQL] Automatically created missing Admin: ${admin.email}`);
+          }
+        } catch (adminErr) {
+          console.error(`[MySQL] Failed to execute Admin seed query for ${admin.email}:`, adminErr);
+        }
       }
 
       console.log('[MySQL] Remote tables checked and ready to serve live data!');
@@ -665,31 +688,83 @@ async function initDb() {
       await conn.end();
     }
 
-    // Force synchronization of the targeted user in Local Fallback database
-    const fId = '936e716b-9637-409d-ba51-1c18d85c2f93';
-    const fEmail = 'earr.music@gmail.com';
-    const fHash = hashPassword('@f33rinimi');
-    const localUser = localDb.users.find(u => u.id === fId || u.email === fEmail);
-    if (localUser) {
-      localUser.password_hash = fHash;
-    } else {
-      localDb.users.push({
-        id: fId,
-        email: fEmail,
-        password_hash: fHash,
-        created_at: new Date().toISOString()
-      });
-      localDb.profiles.push({
-        id: crypto.randomUUID(),
-        user_id: fId,
+    // Force synchronization of the targeted users in Local Fallback database
+    const targetAdminsLocal = [
+      {
+        id: '936e716b-9637-409d-ba51-1c18d85c2f93',
+        email: 'earr.music@gmail.com',
         username: 'earrmusic',
         display_name: 'Earr Music',
-        avatar_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=earrmusic`,
-        bio: 'Hello, I am new on Ripple!',
-        is_verified: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
+      },
+      {
+        id: '822e116b-1137-409d-ba51-1c18d85c2f94',
+        email: 'duwit.online.dev@gmail.com',
+        username: 'duwit_dev',
+        display_name: 'Duwit Admin',
+      }
+    ];
+
+    const fHash = hashPassword('@f33rinimi');
+    for (const admin of targetAdminsLocal) {
+      const localUser = localDb.users.find(u => u.id === admin.id || u.email === admin.email);
+      if (localUser) {
+        localUser.password_hash = fHash;
+        // Make sure email is saved lower-cased
+        localUser.email = admin.email.toLowerCase().trim();
+        const finalId = localUser.id;
+        
+        // Ensure profile exists and is updated
+        let localProfile = localDb.profiles.find(p => p.user_id === finalId);
+        if (!localProfile) {
+          localProfile = {
+            id: crypto.randomUUID(),
+            user_id: finalId,
+            username: admin.username,
+            display_name: admin.display_name,
+            avatar_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${admin.username}`,
+            bio: 'Internal administrator.',
+            is_verified: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          localDb.profiles.push(localProfile);
+        } else {
+          localProfile.is_verified = true;
+        }
+
+        // Ensure user_roles has admin
+        const hasAdminRole = localDb.user_roles.some(r => r.user_id === finalId && r.role === 'admin');
+        if (!hasAdminRole) {
+          localDb.user_roles.push({
+            id: crypto.randomUUID(),
+            user_id: finalId,
+            role: 'admin'
+          });
+        }
+      } else {
+        localDb.users.push({
+          id: admin.id,
+          email: admin.email.toLowerCase().trim(),
+          password_hash: fHash,
+          created_at: new Date().toISOString()
+        });
+        localDb.profiles.push({
+          id: crypto.randomUUID(),
+          user_id: admin.id,
+          username: admin.username,
+          display_name: admin.display_name,
+          avatar_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${admin.username}`,
+          bio: 'Internal administrator.',
+          is_verified: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        localDb.user_roles.push({
+          id: crypto.randomUUID(),
+          user_id: admin.id,
+          role: 'admin'
+        });
+      }
     }
     saveLocalDb();
 
@@ -1189,10 +1264,11 @@ app.get('/api/admin/db-status', (req, res) => {
 
   // Client Auth Signup API
   app.post('/api/auth/signup', async (req, res) => {
-    const { email, password, options } = req.body;
-    if (!email || !password) {
+    const { email: rawEmail, password, options } = req.body;
+    if (!rawEmail || !password) {
       return res.status(400).send('Email and password required.');
     }
+    const email = rawEmail.toLowerCase().trim();
 
     // fallback check
     if (useLocalFallback || !pool) {
@@ -1313,10 +1389,11 @@ app.get('/api/admin/db-status', (req, res) => {
 
   // Client Auth Signin API
   app.post('/api/auth/signin', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const { email: rawEmail, password } = req.body;
+    if (!rawEmail || !password) {
       return res.status(400).send('Email and password required.');
     }
+    const email = rawEmail.toLowerCase().trim();
 
     if (useLocalFallback || !pool) {
       try {
